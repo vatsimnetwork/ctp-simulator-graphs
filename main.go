@@ -29,12 +29,12 @@ func main() {
 		Views: engine,
 	})
 
-	app.Use("/app/static", static.New("./static"))
-	app.Use("/app/favicon.ico", static.New("./favicon.ico"))
+	app.Use("/charts/static", static.New("./static"))
+	app.Use("/charts/favicon.ico", static.New("./favicon.ico"))
 
-	app.Get("/app/airports/departure", middleware.RequireAuth, handlers.DepartureAirportsPage)
-	app.Get("/app/airports/arrival", middleware.RequireAuth, handlers.ArrivalAirportsPage)
-	app.Get("/app/sectors", middleware.RequireAuth, handlers.SectorsPage)
+	app.Get("/charts/airports/departure", middleware.RequireAuth, handlers.DepartureAirportsPage)
+	app.Get("/charts/airports/arrival", middleware.RequireAuth, handlers.ArrivalAirportsPage)
+	app.Get("/charts/sectors", middleware.RequireAuth, handlers.SectorsPage)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)

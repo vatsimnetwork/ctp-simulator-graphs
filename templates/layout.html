@@ -5,20 +5,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{.PageTitle}} — Cross the Pond</title>
-  <link rel="icon" href="/app/favicon.ico">
-  <link rel="stylesheet" href="/app/static/tailwind.css">
-  <link rel="stylesheet" href="/app/static/simulator.css">
-  <script src="/app/static/theme.js"></script>
+  <link rel="icon" href="/charts/favicon.ico">
+  <link rel="stylesheet" href="/charts/static/tailwind.css">
+  <link rel="stylesheet" href="/charts/static/simulator.css">
+  <script src="/charts/static/theme.js"></script>
 </head>
 <body>
 
 <header class="topbar">
   <div class="topbar-inner">
     <nav class="topbar-nav">
-      <a class="topbar-brand" href="/">Simulator Results</a>
-      <a class="topbar-nav-link{{if eq .ActivePage "airports-departure"}} active{{end}}" href="/app/airports/departure{{.EventQuery}}">Departures</a>
-      <a class="topbar-nav-link{{if eq .ActivePage "sectors"}} active{{end}}" href="/app/sectors{{.EventQuery}}">Sectors</a>
-      <a class="topbar-nav-link{{if eq .ActivePage "airports-arrival"}} active{{end}}" href="/app/airports/arrival{{.EventQuery}}">Arrivals</a>
+      <a class="topbar-brand" href="/charts/">Simulator Results</a>
+      <a class="topbar-nav-link{{if eq .ActivePage "airports-departure"}} active{{end}}" href="/charts/airports/departure{{.EventQuery}}">Departures</a>
+      <a class="topbar-nav-link{{if eq .ActivePage "sectors"}} active{{end}}" href="/charts/sectors{{.EventQuery}}">Sectors</a>
+      <a class="topbar-nav-link{{if eq .ActivePage "airports-arrival"}} active{{end}}" href="/charts/airports/arrival{{.EventQuery}}">Arrivals</a>
     </nav>
     <div class="topbar-right">
       {{if .Events}}
@@ -58,8 +58,8 @@
   {{embed}}
 </div>
 
-<script src="/app/static/chart.umd.min.js"></script>
-<script src="/app/static/simulator.js"></script>
+<script src="/charts/static/chart.umd.min.js"></script>
+<script src="/charts/static/simulator.js"></script>
 </body>
 </html>
 {{end}}
