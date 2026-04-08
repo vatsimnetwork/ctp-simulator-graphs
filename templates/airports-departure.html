@@ -1,0 +1,37 @@
+{{if not .HasRevision}}
+<div class="empty-state">No revision data available.</div>
+{{else}}
+
+<div class="card-grid" id="dep-airport-grid">
+  {{range $i, $ap := .Airports}}
+  <div class="grid-card grid-card--{{$ap.CardClass}} dep-airport-card"
+       data-idx="{{$i}}"
+       data-name="{{$ap.Name}}"
+       data-slots='{{$ap.SlotsJSON}}'>
+    <div class="grid-card__name">{{$ap.Name}}</div>
+    <div class="grid-card__sub">{{$ap.SlotsAllocated}} slots</div>
+    <div class="grid-card__util">{{printf "%.1f" $ap.UtilPct}}%</div>
+  </div>
+  {{end}}
+</div>
+
+<div class="detail-panel" id="dep-detail" style="display:none">
+  <div class="detail-panel__header">
+    <span id="dep-detail-title">—</span>
+  </div>
+  <div class="detail-panel__body">
+    <table class="slot-table">
+      <thead>
+        <tr>
+          <th>Departing</th>
+          <th>Arriving</th>
+          <th>Departure Time</th>
+          <th>Calculated Arrival</th>
+        </tr>
+      </thead>
+      <tbody id="dep-slot-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+{{end}}

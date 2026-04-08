@@ -1,0 +1,15 @@
+.env
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+tailwindcss.exe
+static/tailwind.css
+
+# Session/notes files
+session.md
+SECURITY_AUDIT.md

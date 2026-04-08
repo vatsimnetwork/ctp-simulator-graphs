@@ -1,0 +1,65 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.PageTitle}} — Cross the Pond</title>
+  <link rel="icon" href="/app/favicon.ico">
+  <link rel="stylesheet" href="/app/static/tailwind.css">
+  <link rel="stylesheet" href="/app/static/simulator.css">
+  <script src="/app/static/theme.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <nav class="topbar-nav">
+      <a class="topbar-brand" href="/">Simulator Results</a>
+      <a class="topbar-nav-link{{if eq .ActivePage "airports-departure"}} active{{end}}" href="/app/airports/departure{{.EventQuery}}">Departures</a>
+      <a class="topbar-nav-link{{if eq .ActivePage "sectors"}} active{{end}}" href="/app/sectors{{.EventQuery}}">Sectors</a>
+      <a class="topbar-nav-link{{if eq .ActivePage "airports-arrival"}} active{{end}}" href="/app/airports/arrival{{.EventQuery}}">Arrivals</a>
+    </nav>
+    <div class="topbar-right">
+      {{if .Events}}
+      <form class="topbar-selector" method="GET" action="{{.CurrentPath}}">
+        <select name="event" class="selector-input" onchange="this.form.submit()">
+          <option value="">Select event</option>
+          {{range .Events}}
+          <option value="{{.ID}}"{{if eq .ID $.SelectedEventID}} selected{{end}}>{{.Title}}</option>
+          {{end}}
+        </select>
+      </form>
+      {{end}}
+      {{if .Revisions}}
+      <form class="topbar-selector" method="GET" action="{{.CurrentPath}}">
+        <input type="hidden" name="event" value="{{.SelectedEventID}}">
+        <select name="revision" class="selector-input" onchange="this.form.submit()">
+          <option value="">Latest revision</option>
+          {{range .Revisions}}
+          <option value="{{.}}"{{if eq . $.SelectedRevision}} selected{{end}}>Rev {{.}}</option>
+          {{end}}
+        </select>
+      </form>
+      {{end}}
+      <button class="theme-btn" id="theme-toggle" aria-label="Toggle theme">
+        <svg class="icon-sun" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <svg class="icon-moon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  {{embed}}
+</div>
+
+<script src="/app/static/chart.umd.min.js"></script>
+<script src="/app/static/simulator.js"></script>
+</body>
+</html>
+{{end}}
