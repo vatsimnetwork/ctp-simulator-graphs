@@ -12,9 +12,8 @@
   src: url('fonts/Ubuntu-Bold.ttf') format('truetype');
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@source "../templates/**/*.html";
 
 @layer base {
   :root {
