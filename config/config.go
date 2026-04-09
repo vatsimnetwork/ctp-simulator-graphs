@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	Port               string
+	BasePath           string
 	SSOBaseURL         string
 	SSOLoginURL        string
 	InternalAPIKey     string
@@ -23,6 +24,7 @@ func Load() {
 
 	C = Config{
 		Port:               getEnv("PORT", "3000"),
+		BasePath:           getEnv("BASE_PATH", "/app"),
 		SSOBaseURL:         getEnv("SSO_BASE_URL", "https://sso.example.com"),
 		SSOLoginURL:        getEnv("SSO_LOGIN_URL", "https://sso.example.com/login"),
 		InternalAPIKey:     getEnv("INTERNAL_API_KEY", ""),

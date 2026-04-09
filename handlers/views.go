@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
 
+	"ctpcharts/config"
 	"ctpcharts/services"
 )
 
@@ -46,6 +47,7 @@ type baseData struct {
 	PageTitle        string
 	ActivePage       string
 	CurrentPath      string
+	BasePath         string
 	EventQuery       string
 	Events           []services.EventSummary
 	Revisions        []uint
@@ -97,6 +99,7 @@ func newBaseData(c fiber.Ctx, activePage string) baseData {
 		PageTitle:        activePage,
 		ActivePage:       activePage,
 		CurrentPath:      c.Path(),
+		BasePath:         config.C.BasePath,
 		EventQuery:       eventQuery,
 		Events:           events,
 		SelectedEventID:  eventID,
@@ -173,6 +176,7 @@ func DepartureAirportsPage(c fiber.Ctx) error {
 		"PageTitle":        "Departure Airports",
 		"ActivePage":       bd.ActivePage,
 		"CurrentPath":      bd.CurrentPath,
+		"BasePath":         bd.BasePath,
 		"EventQuery":       bd.EventQuery,
 		"Events":           bd.Events,
 		"SelectedEventID":  bd.SelectedEventID,
@@ -230,6 +234,7 @@ func SectorsPage(c fiber.Ctx) error {
 		"PageTitle":        "Sectors",
 		"ActivePage":       bd.ActivePage,
 		"CurrentPath":      bd.CurrentPath,
+		"BasePath":         bd.BasePath,
 		"EventQuery":       bd.EventQuery,
 		"Events":           bd.Events,
 		"SelectedEventID":  bd.SelectedEventID,
@@ -280,6 +285,7 @@ func ArrivalAirportsPage(c fiber.Ctx) error {
 		"PageTitle":        "Arrival Airports",
 		"ActivePage":       bd.ActivePage,
 		"CurrentPath":      bd.CurrentPath,
+		"BasePath":         bd.BasePath,
 		"EventQuery":       bd.EventQuery,
 		"Events":           bd.Events,
 		"SelectedEventID":  bd.SelectedEventID,

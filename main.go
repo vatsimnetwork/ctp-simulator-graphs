@@ -29,12 +29,17 @@ func main() {
 		Views: engine,
 	})
 
-	app.Use("/charts/static", static.New("./static"))
-	app.Use("/charts/favicon.ico", static.New("./favicon.ico"))
+	base := config.C.BasePath
 
-	app.Get("/charts/airports/departure", middleware.RequireAuth, handlers.DepartureAirportsPage)
-	app.Get("/charts/airports/arrival", middleware.RequireAuth, handlers.ArrivalAirportsPage)
-	app.Get("/charts/sectors", middleware.RequireAuth, handlers.SectorsPage)
+	app.Use(base+"/static", static.New("./static"))
+	app.Use(base+"/favicon.ico", static.New("./favicon.ico"))
+
+	app.Get(base, middleware.RequireAuth, func(c fiber.Ctx) error {
+		return c.Redirect().To(base + "/airports/departure")
+	})
+	app.Get(base+"/airports/departure", middleware.RequireAuth, handlers.DepartureAirportsPage)
+	app.Get(base+"/airports/arrival", middleware.RequireAuth, handlers.ArrivalAirportsPage)
+	app.Get(base+"/sectors", middleware.RequireAuth, handlers.SectorsPage)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
