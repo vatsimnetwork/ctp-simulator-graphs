@@ -248,16 +248,20 @@ type DepAirportsResponse struct {
 }
 
 type SectorBucket struct {
-	Label string `json:"label"`
-	Count int    `json:"count"`
+	Label       string `json:"label"`
+	PeakCount   int    `json:"peakCount"`
+	UniqueCount int    `json:"uniqueCount"`
 }
 
 type SectorEntry struct {
-	Identifier   string         `json:"identifier"`
-	MaxAcPerHour uint16         `json:"maxAcPerHour"`
-	HasTimings   bool           `json:"hasTimings"`
-	TotalSlots   int            `json:"totalSlots"`
-	Buckets      []SectorBucket `json:"buckets"`
+	Identifier              string         `json:"identifier"`
+	MaxAcPerHour            uint16         `json:"maxAcPerHour"`
+	HasTimings              bool           `json:"hasTimings"`
+	TotalSlots              int            `json:"totalSlots"`
+	AvgDwellMinutes         float64        `json:"avgDwellMinutes"`
+	EstimatedMaxOccupancy   int            `json:"estimatedMaxOccupancy"`
+	EstimatedTotalOccupancy int            `json:"estimatedTotalOccupancy"`
+	Buckets                 []SectorBucket `json:"buckets"`
 }
 
 type SectorsResponse struct {

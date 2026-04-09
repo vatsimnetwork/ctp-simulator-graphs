@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"math"
+	"sort"
 	"time"
 )
 
@@ -24,15 +25,25 @@ type DepartureAirportData struct {
 }
 
 type SectorTimingData struct {
-	Identifier   string
-	MaxAcPerHour uint16
-	UtilPct      float64
-	CardClass    string
-	HasTimings   bool
-	Peak         int
-	PeakLabel    string
-	TimeSeries   []int
-	TimeLabels   []string
+	Identifier              string
+	MaxAcPerHour            uint16
+	// Peak view: peak instantaneous count per bucket, reference = Little's Law occupancy
+	EstimatedMaxOccupancy   int
+	PeakTimeSeries          []int
+	Peak                    int
+	PeakLabel               string
+	PeakUtilPct             float64
+	PeakCardClass           string
+	// Total view: cumulative unique slots per bucket, reference = λ(W+20)/60
+	EstimatedTotalOccupancy int
+	TotalTimeSeries         []int
+	TotalPeak               int
+	TotalPeakLabel          string
+	TotalUtilPct            float64
+	TotalCardClass          string
+	// Shared
+	HasTimings              bool
+	TimeLabels              []string
 }
 
 type DepSeriesData struct {
@@ -44,6 +55,8 @@ type DepSeriesData struct {
 type ArrivalAirportData struct {
 	Identifier     string
 	MaxSlots       uint16
+	UtilPct        float64
+	CardClass      string
 	ArrWindowHours string
 	Labels         []string
 	Total          []int
@@ -51,7 +64,7 @@ type ArrivalAirportData struct {
 }
 
 func cardClass(utilPct float64) string {
-	if utilPct >= 100 {
+	if utilPct > 100 {
 		return "red"
 	}
 	if utilPct >= 90 {
@@ -100,47 +113,82 @@ func BuildSectors(resp *SectorsResponse) []SectorTimingData {
 		return nil
 	}
 
-	depHours := 3.0
-	if d, err := time.ParseDuration(resp.DepartureTimeWindow); err == nil && d > 0 {
-		depHours = d.Hours()
-	}
-
 	var result []SectorTimingData
 	for _, s := range resp.Sectors {
-		utilPct := 0.0
-		if s.MaxAcPerHour > 0 && s.MaxAcPerHour < 65535 && depHours > 0 {
-			utilPct = math.Round(float64(s.TotalSlots)/(float64(s.MaxAcPerHour)*depHours)*1000) / 10
-		}
-
-		series := make([]int, 0, len(s.Buckets))
+		peakSeries := make([]int, 0, len(s.Buckets))
+		totalSeries := make([]int, 0, len(s.Buckets))
 		labels := make([]string, 0, len(s.Buckets))
+
 		peak, peakIdx := 0, 0
+		totalPeak, totalPeakIdx := 0, 0
 		for i, b := range s.Buckets {
-			series = append(series, b.Count)
+			peakSeries = append(peakSeries, b.PeakCount)
+			totalSeries = append(totalSeries, b.UniqueCount)
 			labels = append(labels, b.Label)
-			if b.Count > peak {
-				peak = b.Count
+			if b.PeakCount > peak {
+				peak = b.PeakCount
 				peakIdx = i
+			}
+			if b.UniqueCount > totalPeak {
+				totalPeak = b.UniqueCount
+				totalPeakIdx = i
 			}
 		}
 
-		peakLabel := ""
-		if len(labels) > 0 && peakIdx < len(labels) {
-			peakLabel = labels[peakIdx]
+		peakLabel, totalPeakLabel := "", ""
+		if len(labels) > 0 {
+			if peakIdx < len(labels) {
+				peakLabel = labels[peakIdx]
+			}
+			if totalPeakIdx < len(labels) {
+				totalPeakLabel = labels[totalPeakIdx]
+			}
+		}
+
+		// utilPct = peak value / reference line, consistent between both views.
+		peakUtilPct := 0.0
+		if s.EstimatedMaxOccupancy > 0 {
+			peakUtilPct = math.Round(float64(peak)/float64(s.EstimatedMaxOccupancy)*1000) / 10
+		}
+		totalUtilPct := 0.0
+		if s.EstimatedTotalOccupancy > 0 {
+			totalUtilPct = math.Round(float64(totalPeak)/float64(s.EstimatedTotalOccupancy)*1000) / 10
+		}
+
+		peakClass := cardClass(peakUtilPct)
+		totalClass := cardClass(totalUtilPct)
+		if !s.HasTimings {
+			peakClass = "grey"
+			totalClass = "grey"
 		}
 
 		result = append(result, SectorTimingData{
-			Identifier:   s.Identifier,
-			MaxAcPerHour: s.MaxAcPerHour,
-			UtilPct:      utilPct,
-			CardClass:    cardClass(utilPct),
-			HasTimings:   s.HasTimings,
-			Peak:         peak,
-			PeakLabel:    peakLabel,
-			TimeSeries:   series,
-			TimeLabels:   labels,
+			Identifier:              s.Identifier,
+			MaxAcPerHour:            s.MaxAcPerHour,
+			EstimatedMaxOccupancy:   s.EstimatedMaxOccupancy,
+			PeakTimeSeries:          peakSeries,
+			Peak:                    peak,
+			PeakLabel:               peakLabel,
+			PeakUtilPct:             peakUtilPct,
+			PeakCardClass:           peakClass,
+			EstimatedTotalOccupancy: s.EstimatedTotalOccupancy,
+			TotalTimeSeries:         totalSeries,
+			TotalPeak:               totalPeak,
+			TotalPeakLabel:          totalPeakLabel,
+			TotalUtilPct:            totalUtilPct,
+			TotalCardClass:          totalClass,
+			HasTimings:              s.HasTimings,
+			TimeLabels:              labels,
 		})
 	}
+
+	// Sectors with timing data first, no-timing sectors at the bottom.
+	sort.SliceStable(result, func(i, j int) bool {
+		if result[i].HasTimings != result[j].HasTimings {
+			return result[i].HasTimings
+		}
+		return false
+	})
 
 	return result
 }
@@ -185,9 +233,20 @@ func BuildArrivalAirports(resp *ArrAirportsResponse) []ArrivalAirportData {
 			})
 		}
 
+		totalArrivals := 0
+		for _, v := range ap.Total {
+			totalArrivals += v
+		}
+		utilPct := 0.0
+		if ap.MaximumSlots > 0 && ap.MaximumSlots < 65535 {
+			utilPct = math.Round(float64(totalArrivals)/float64(ap.MaximumSlots)*1000) / 10
+		}
+
 		result = append(result, ArrivalAirportData{
 			Identifier:     ap.Identifier,
 			MaxSlots:       ap.MaximumSlots,
+			UtilPct:        utilPct,
+			CardClass:      cardClass(utilPct),
 			ArrWindowHours: arrWindowHours(ap.Labels),
 			Labels:         ap.Labels,
 			Total:          ap.Total,

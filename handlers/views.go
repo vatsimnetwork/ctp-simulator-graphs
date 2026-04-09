@@ -194,19 +194,68 @@ func DepartureAirportsPage(c fiber.Ctx) error {
 // ── Sectors page ─────────────────────────────────────────────────────────────
 
 type sectorView struct {
-	Identifier     string
-	MaxAcPerHour   uint16
-	UtilPct        float64
-	CardClass      string
-	HasTimings     bool
-	Peak           int
-	PeakLabel      string
+	Identifier    string
+	MaxAcPerHour  uint16
+	RefLine       int // reference line value for the chart (0 = no line)
+	UtilPct       float64
+	CardClass     string
+	HasTimings    bool
+	Peak          int
+	PeakLabel     string
 	TimeSeriesJSON template.JS
 	TimeLabelsJSON template.JS
 }
 
-func SectorsPage(c fiber.Ctx) error {
-	bd := newBaseData(c, "sectors")
+func buildSectorViews(raw []services.SectorTimingData, peak bool) []sectorView {
+	views := make([]sectorView, 0, len(raw))
+	for _, s := range raw {
+		var series []int
+		var refLine int
+		var utilPct float64
+		var cardClass string
+		var pk int
+		var pkLabel string
+		if peak {
+			series = s.PeakTimeSeries
+			refLine = s.EstimatedMaxOccupancy
+			utilPct = s.PeakUtilPct
+			cardClass = s.PeakCardClass
+			pk = s.Peak
+			pkLabel = s.PeakLabel
+		} else {
+			series = s.TotalTimeSeries
+			refLine = s.EstimatedTotalOccupancy
+			utilPct = s.TotalUtilPct
+			cardClass = s.TotalCardClass
+			pk = s.TotalPeak
+			pkLabel = s.TotalPeakLabel
+		}
+		tsJSON, _ := json.Marshal(series)
+		tlJSON, _ := json.Marshal(s.TimeLabels)
+		views = append(views, sectorView{
+			Identifier:     s.Identifier,
+			MaxAcPerHour:   s.MaxAcPerHour,
+			RefLine:        refLine,
+			UtilPct:        utilPct,
+			CardClass:      cardClass,
+			HasTimings:     s.HasTimings,
+			Peak:           pk,
+			PeakLabel:      pkLabel,
+			TimeSeriesJSON: template.JS(tsJSON),
+			TimeLabelsJSON: template.JS(tlJSON),
+		})
+	}
+	return views
+}
+
+func renderSectorsPage(c fiber.Ctx, peakMode bool) error {
+	activePage := "sectors-peak"
+	pageTitle := "Sectors – Max Occupancy"
+	if !peakMode {
+		activePage = "sectors-total"
+		pageTitle = "Sectors – Total Occupancy"
+	}
+	bd := newBaseData(c, activePage)
 
 	resp, err := services.FetchSectors(bd.SelectedEventID)
 	if err != nil {
@@ -216,26 +265,11 @@ func SectorsPage(c fiber.Ctx) error {
 	hasRevision := resp != nil && resp.RevisionNumber > 0
 	var sectors []sectorView
 	if hasRevision {
-		raw := services.BuildSectors(resp)
-		for _, s := range raw {
-			tsJSON, _ := json.Marshal(s.TimeSeries)
-			tlJSON, _ := json.Marshal(s.TimeLabels)
-			sectors = append(sectors, sectorView{
-				Identifier:     s.Identifier,
-				MaxAcPerHour:   s.MaxAcPerHour,
-				UtilPct:        s.UtilPct,
-				CardClass:      s.CardClass,
-				HasTimings:     s.HasTimings,
-				Peak:           s.Peak,
-				PeakLabel:      s.PeakLabel,
-				TimeSeriesJSON: template.JS(tsJSON),
-				TimeLabelsJSON: template.JS(tlJSON),
-			})
-		}
+		sectors = buildSectorViews(services.BuildSectors(resp), peakMode)
 	}
 
 	return c.Render("sectors", fiber.Map{
-		"PageTitle":        "Sectors",
+		"PageTitle":        pageTitle,
 		"ActivePage":       bd.ActivePage,
 		"CurrentPath":      bd.CurrentPath,
 		"BasePath":         bd.BasePath,
@@ -251,11 +285,16 @@ func SectorsPage(c fiber.Ctx) error {
 	}, "layout")
 }
 
+func SectorsMaxOccPage(c fiber.Ctx) error  { return renderSectorsPage(c, true) }
+func SectorsTotalOccPage(c fiber.Ctx) error { return renderSectorsPage(c, false) }
+
 // ── Arrival airports page ─────────────────────────────────────────────────────
 
 type arrivalAirportView struct {
 	Identifier     string
 	MaxSlots       uint16
+	UtilPct        float64
+	CardClass      string
 	ArrWindowHours string
 	LabelsJSON     template.JS
 	TotalJSON      template.JS
@@ -281,6 +320,8 @@ func ArrivalAirportsPage(c fiber.Ctx) error {
 			airports = append(airports, arrivalAirportView{
 				Identifier:     ap.Identifier,
 				MaxSlots:       ap.MaxSlots,
+				UtilPct:        ap.UtilPct,
+				CardClass:      ap.CardClass,
 				ArrWindowHours: ap.ArrWindowHours,
 				LabelsJSON:     template.JS(labelsJSON),
 				TotalJSON:      template.JS(totalJSON),

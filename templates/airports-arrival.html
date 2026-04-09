@@ -21,7 +21,7 @@
 
   <div class="card-grid" id="arr-airport-grid">
     {{range $i, $ap := .Airports}}
-    <div class="grid-card arr-airport-card"
+    <div class="grid-card grid-card--{{$ap.CardClass}} arr-airport-card"
          data-idx="{{$i}}"
          data-name="{{$ap.Identifier}}"
          data-labels='{{$ap.LabelsJSON}}'
@@ -29,6 +29,7 @@
          data-dep-series='{{$ap.DepSeriesJSON}}'>
       <div class="grid-card__name">{{$ap.Identifier}}</div>
       <div class="grid-card__sub">Max {{$ap.MaxSlots}} slots{{if $ap.ArrWindowHours}} · {{$ap.ArrWindowHours}} window{{end}}</div>
+      <div class="grid-card__util">{{printf "%.1f" $ap.UtilPct}}%</div>
     </div>
     {{end}}
   </div>

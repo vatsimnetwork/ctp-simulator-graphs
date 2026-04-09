@@ -39,7 +39,8 @@ func main() {
 	})
 	app.Get(base+"/airports/departure", middleware.RequireAuth, handlers.DepartureAirportsPage)
 	app.Get(base+"/airports/arrival", middleware.RequireAuth, handlers.ArrivalAirportsPage)
-	app.Get(base+"/sectors", middleware.RequireAuth, handlers.SectorsPage)
+	app.Get(base+"/sectors", middleware.RequireAuth, handlers.SectorsTotalOccPage)
+	app.Get(base+"/sectors/peak", middleware.RequireAuth, handlers.SectorsMaxOccPage)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
