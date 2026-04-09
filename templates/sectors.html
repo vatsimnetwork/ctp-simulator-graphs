@@ -16,26 +16,24 @@
     </div>
   </div>
 
-  <div class="sectors-grid-scroll">
-    <div class="card-grid" id="sector-grid">
-      {{range $i, $s := .Sectors}}
-      <div class="grid-card grid-card--{{$s.CardClass}} sector-card"
-           data-idx="{{$i}}"
-           data-name="{{$s.Identifier}}"
-           data-has-timings="{{$s.HasTimings}}"
-           data-series="{{$s.TimeSeriesJSON}}"
-           data-labels="{{$s.TimeLabelsJSON}}"
-           data-max="{{$s.MaxAcPerHour}}">
-        <div class="grid-card__name">{{$s.Identifier}}</div>
-        {{if $s.HasTimings}}
-        <div class="grid-card__sub">Peak: {{$s.Peak}} @ {{$s.PeakLabel}}</div>
-        {{else}}
-        <div class="grid-card__sub">No timing data</div>
-        {{end}}
-        <div class="grid-card__util">{{printf "%.1f" $s.UtilPct}}%</div>
-      </div>
+  <div class="card-grid" id="sector-grid">
+    {{range $i, $s := .Sectors}}
+    <div class="grid-card grid-card--{{$s.CardClass}} sector-card"
+         data-idx="{{$i}}"
+         data-name="{{$s.Identifier}}"
+         data-has-timings="{{$s.HasTimings}}"
+         data-series="{{$s.TimeSeriesJSON}}"
+         data-labels="{{$s.TimeLabelsJSON}}"
+         data-max="{{$s.MaxAcPerHour}}">
+      <div class="grid-card__name">{{$s.Identifier}}</div>
+      {{if $s.HasTimings}}
+      <div class="grid-card__sub">Peak: {{$s.Peak}} @ {{$s.PeakLabel}}</div>
+      {{else}}
+      <div class="grid-card__sub">No timing data</div>
       {{end}}
+      <div class="grid-card__util">{{printf "%.1f" $s.UtilPct}}%</div>
     </div>
+    {{end}}
   </div>
 
 </div>
