@@ -509,13 +509,10 @@ body {
   color: #18181b;
 }
 
-/* ── Sectors pinned-chart layout ── */
+/* ── Sectors / Arrivals pinned-chart layout ── */
 
-body.sectors-page .page {
-  padding-bottom: 0;
-}
-
-.sectors-layout .detail-panel {
+.sectors-layout .detail-panel,
+.arrivals-layout .detail-panel {
   position: sticky;
   top: 48px;
   z-index: 10;
@@ -526,7 +523,8 @@ body.sectors-page .page {
   border-radius: 0;
   background: #fcfcfc;
 }
-.dark .sectors-layout .detail-panel {
+.dark .sectors-layout .detail-panel,
+.dark .arrivals-layout .detail-panel {
   background: #18181b;
 }
 

@@ -459,8 +459,6 @@
         arrToggleBar.classList.add('active');
         arrToggleLine.classList.remove('active');
         renderArrChart();
-
-        arrDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     });
 

@@ -2,33 +2,37 @@
 <div class="empty-state">No revision data available.</div>
 {{else}}
 
-<div class="card-grid" id="arr-airport-grid">
-  {{range $i, $ap := .Airports}}
-  <div class="grid-card arr-airport-card"
-       data-idx="{{$i}}"
-       data-name="{{$ap.Identifier}}"
-       data-labels='{{$ap.LabelsJSON}}'
-       data-total='{{$ap.TotalJSON}}'
-       data-dep-series='{{$ap.DepSeriesJSON}}'>
-    <div class="grid-card__name">{{$ap.Identifier}}</div>
-    <div class="grid-card__sub">Max {{$ap.MaxSlots}} slots</div>
-  </div>
-  {{end}}
-</div>
+<div class="arrivals-layout">
 
-<div class="detail-panel" id="arr-detail" style="display:none">
-  <div class="detail-panel__header">
-    <span id="arr-detail-title">—</span>
-    <div class="chart-toggle">
-      <button class="chart-toggle-btn active" id="arr-toggle-bar">Bar</button>
-      <button class="chart-toggle-btn" id="arr-toggle-line">Line</button>
+  <div class="detail-panel" id="arr-detail" style="display:none">
+    <div class="detail-panel__header">
+      <span id="arr-detail-title">—</span>
+      <div class="chart-toggle">
+        <button class="chart-toggle-btn active" id="arr-toggle-bar">Bar</button>
+        <button class="chart-toggle-btn" id="arr-toggle-line">Line</button>
+      </div>
+    </div>
+    <div class="detail-panel__body">
+      <div class="detail-chart-wrap">
+        <canvas id="arr-chart-canvas"></canvas>
+      </div>
     </div>
   </div>
-  <div class="detail-panel__body">
-    <div class="detail-chart-wrap">
-      <canvas id="arr-chart-canvas"></canvas>
+
+  <div class="card-grid" id="arr-airport-grid">
+    {{range $i, $ap := .Airports}}
+    <div class="grid-card arr-airport-card"
+         data-idx="{{$i}}"
+         data-name="{{$ap.Identifier}}"
+         data-labels='{{$ap.LabelsJSON}}'
+         data-total='{{$ap.TotalJSON}}'
+         data-dep-series='{{$ap.DepSeriesJSON}}'>
+      <div class="grid-card__name">{{$ap.Identifier}}</div>
+      <div class="grid-card__sub">Max {{$ap.MaxSlots}} slots</div>
     </div>
+    {{end}}
   </div>
+
 </div>
 
 {{end}}
