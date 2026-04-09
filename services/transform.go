@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"math"
 	"time"
 )
@@ -41,11 +42,12 @@ type DepSeriesData struct {
 }
 
 type ArrivalAirportData struct {
-	Identifier string
-	MaxSlots   uint16
-	Labels     []string
-	Total      []int
-	DepSeries  []DepSeriesData
+	Identifier     string
+	MaxSlots       uint16
+	ArrWindowHours string
+	Labels         []string
+	Total          []int
+	DepSeries      []DepSeriesData
 }
 
 func cardClass(utilPct float64) string {
@@ -143,6 +145,27 @@ func BuildSectors(resp *SectorsResponse) []SectorTimingData {
 	return result
 }
 
+func arrWindowHours(labels []string) string {
+	if len(labels) < 2 {
+		return ""
+	}
+	const layout = "15:04Z"
+	first, err1 := time.Parse(layout, labels[0])
+	last, err2 := time.Parse(layout, labels[len(labels)-1])
+	if err1 != nil || err2 != nil {
+		return ""
+	}
+	d := last.Sub(first)
+	if d <= 0 {
+		return ""
+	}
+	hours := d.Hours()
+	if hours == float64(int(hours)) {
+		return fmt.Sprintf("%.0fh", hours)
+	}
+	return fmt.Sprintf("%.1fh", hours)
+}
+
 func BuildArrivalAirports(resp *ArrAirportsResponse) []ArrivalAirportData {
 	if resp == nil {
 		return nil
@@ -160,11 +183,12 @@ func BuildArrivalAirports(resp *ArrAirportsResponse) []ArrivalAirportData {
 		}
 
 		result = append(result, ArrivalAirportData{
-			Identifier: ap.Identifier,
-			MaxSlots:   ap.MaximumSlots,
-			Labels:     ap.Labels,
-			Total:      ap.Total,
-			DepSeries:  depSeries,
+			Identifier:     ap.Identifier,
+			MaxSlots:       ap.MaximumSlots,
+			ArrWindowHours: arrWindowHours(ap.Labels),
+			Labels:         ap.Labels,
+			Total:          ap.Total,
+			DepSeries:      depSeries,
 		})
 	}
 

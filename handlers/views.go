@@ -254,11 +254,12 @@ func SectorsPage(c fiber.Ctx) error {
 // ── Arrival airports page ─────────────────────────────────────────────────────
 
 type arrivalAirportView struct {
-	Identifier    string
-	MaxSlots      uint16
-	LabelsJSON    template.JS
-	TotalJSON     template.JS
-	DepSeriesJSON template.JS
+	Identifier     string
+	MaxSlots       uint16
+	ArrWindowHours string
+	LabelsJSON     template.JS
+	TotalJSON      template.JS
+	DepSeriesJSON  template.JS
 }
 
 func ArrivalAirportsPage(c fiber.Ctx) error {
@@ -278,11 +279,12 @@ func ArrivalAirportsPage(c fiber.Ctx) error {
 			totalJSON, _ := json.Marshal(ap.Total)
 			depJSON, _ := json.Marshal(ap.DepSeries)
 			airports = append(airports, arrivalAirportView{
-				Identifier:    ap.Identifier,
-				MaxSlots:      ap.MaxSlots,
-				LabelsJSON:    template.JS(labelsJSON),
-				TotalJSON:     template.JS(totalJSON),
-				DepSeriesJSON: template.JS(depJSON),
+				Identifier:     ap.Identifier,
+				MaxSlots:       ap.MaxSlots,
+				ArrWindowHours: ap.ArrWindowHours,
+				LabelsJSON:     template.JS(labelsJSON),
+				TotalJSON:      template.JS(totalJSON),
+				DepSeriesJSON:  template.JS(depJSON),
 			})
 		}
 	}
