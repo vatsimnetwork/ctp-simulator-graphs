@@ -506,6 +506,29 @@ body {
   color: #18181b;
 }
 
+/* ── Sectors pinned-chart layout ── */
+
+.sectors-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sectors-layout .detail-panel {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.sectors-grid-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 0 24px;
+}
+
+.sectors-layout .card-grid {
+  margin-bottom: 0;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 768px) {

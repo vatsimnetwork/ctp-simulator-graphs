@@ -298,7 +298,7 @@
           sectorChart = buildRowChart(sectorCanvas, series, labels, maxAcph);
         }
 
-        sectorDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
       });
     });
   }
