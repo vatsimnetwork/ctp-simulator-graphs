@@ -6,9 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{.PageTitle}} — Cross the Pond</title>
   <link rel="icon" href="{{.BasePath}}/favicon.ico">
-  <link rel="stylesheet" href="{{.BasePath}}/static/tailwind.css">
-  <link rel="stylesheet" href="{{.BasePath}}/static/simulator.css">
-  <script src="{{.BasePath}}/static/theme.js"></script>
+  <link rel="stylesheet" href="{{.BasePath}}/static/tailwind.css?v={{.CacheBust}}">
+  <link rel="stylesheet" href="{{.BasePath}}/static/simulator.css?v={{.CacheBust}}">
+  <script src="{{.BasePath}}/static/theme.js?v={{.CacheBust}}"></script>
 </head>
 <body{{if .BodyClass}} class="{{.BodyClass}}"{{end}}>
 
@@ -58,8 +58,8 @@
   {{embed}}
 </div>
 
-<script src="{{.BasePath}}/static/chart.umd.min.js"></script>
-<script src="{{.BasePath}}/static/simulator.js"></script>
+<script src="{{.BasePath}}/static/chart.umd.min.js?v={{.CacheBust}}"></script>
+<script src="{{.BasePath}}/static/simulator.js?v={{.CacheBust}}"></script>
 </body>
 </html>
 {{end}}

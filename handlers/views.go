@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog/log"
@@ -55,6 +56,7 @@ type baseData struct {
 	SelectedRevision uint
 	HasRevision      bool
 	EventTitle       string
+	CacheBust        string
 }
 
 func newBaseData(c fiber.Ctx, activePage string) baseData {
@@ -105,6 +107,7 @@ func newBaseData(c fiber.Ctx, activePage string) baseData {
 		SelectedEventID:  eventID,
 		SelectedRevision: revision,
 		EventTitle:       title,
+		CacheBust:        strconv.FormatInt(time.Now().Unix(), 10),
 	}
 }
 
@@ -183,6 +186,7 @@ func DepartureAirportsPage(c fiber.Ctx) error {
 		"SelectedRevision": bd.SelectedRevision,
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
+		"CacheBust":        bd.CacheBust,
 		"Airports":         airports,
 	}, "layout")
 }
@@ -241,6 +245,7 @@ func SectorsPage(c fiber.Ctx) error {
 		"SelectedRevision": bd.SelectedRevision,
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
+		"CacheBust":        bd.CacheBust,
 		"Sectors":          sectors,
 		"BodyClass":        "sectors-page",
 	}, "layout")
@@ -293,6 +298,7 @@ func ArrivalAirportsPage(c fiber.Ctx) error {
 		"SelectedRevision": bd.SelectedRevision,
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
+		"CacheBust":        bd.CacheBust,
 		"Airports":         airports,
 	}, "layout")
 }

@@ -524,6 +524,10 @@ body.sectors-page .page {
   border-left: none;
   border-right: none;
   border-radius: 0;
+  background: #fcfcfc;
+}
+.dark .sectors-layout .detail-panel {
+  background: #18181b;
 }
 
 /* ── Responsive ── */
