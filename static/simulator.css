@@ -508,6 +508,19 @@ body {
 
 /* ── Sectors pinned-chart layout ── */
 
+body.sectors-page {
+  height: 100%;
+  overflow: hidden;
+}
+
+body.sectors-page .page {
+  height: calc(100vh - 48px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
 .sectors-layout {
   display: flex;
   flex-direction: column;

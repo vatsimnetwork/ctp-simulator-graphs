@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{{.BasePath}}/static/simulator.css">
   <script src="{{.BasePath}}/static/theme.js"></script>
 </head>
-<body>
+<body{{if .BodyClass}} class="{{.BodyClass}}"{{end}}>
 
 <header class="topbar">
   <div class="topbar-inner">

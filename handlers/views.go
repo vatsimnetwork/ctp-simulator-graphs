@@ -242,6 +242,7 @@ func SectorsPage(c fiber.Ctx) error {
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
 		"Sectors":          sectors,
+		"BodyClass":        "sectors-page",
 	}, "layout")
 }
 
