@@ -511,7 +511,8 @@ body {
 .sectors-layout {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .sectors-layout .detail-panel {
@@ -521,6 +522,7 @@ body {
 
 .sectors-grid-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px 0 24px;
 }
