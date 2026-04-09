@@ -156,6 +156,9 @@ func arrWindowHours(labels []string) string {
 		return ""
 	}
 	d := last.Sub(first)
+	if d < 0 {
+		d += 24 * time.Hour
+	}
 	if d <= 0 {
 		return ""
 	}
