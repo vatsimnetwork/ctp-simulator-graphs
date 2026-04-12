@@ -12,15 +12,16 @@
   <div class="detail-panel" id="sector-detail" style="display:none">
     <div class="detail-panel__header">
       <span id="sector-detail-title">—</span>
+      <div class="chart-toggle">
+        <button class="chart-toggle-btn active" id="sector-toggle-bar">Bar</button>
+        <button class="chart-toggle-btn" id="sector-toggle-line">Line</button>
+        <button class="detail-action-btn" id="sector-fine-btn" style="display:none">Load 2-min</button>
+      </div>
     </div>
     <div class="detail-panel__body">
       <div id="sector-no-timings" class="empty-state" style="display:none">NO timings available</div>
       <div class="detail-chart-wrap" id="sector-chart-wrap">
         <canvas id="sector-chart-canvas"></canvas>
-      </div>
-      <div class="detail-panel__actions">
-        <button class="detail-action-btn" id="sector-fine-btn" style="display:none">Load 2-min data</button>
-        <span id="sector-fine-loading" style="display:none;color:#64748b;font-size:12px;margin-left:8px;">Fetching fine-grained data…</span>
       </div>
     </div>
   </div>

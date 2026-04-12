@@ -550,6 +550,16 @@ body {
 .detail-action-btn:hover { border-color: #2A3B90; color: #1e293b; }
 .dark .detail-action-btn:hover { border-color: #2783C5; color: #fafafa; }
 .detail-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.detail-action-btn.active {
+  background: #1e293b;
+  border-color: #1e293b;
+  color: #ffffff;
+}
+.dark .detail-action-btn.active {
+  background: #fafafa;
+  border-color: #fafafa;
+  color: #18181b;
+}
 
 /* ── Chart toggle ── */
 
@@ -574,6 +584,10 @@ body {
   background: #1e293b;
   border-color: #1e293b;
   color: #ffffff;
+}
+.chart-toggle-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .dark .chart-toggle-btn.active {
   background: #fafafa;

@@ -310,8 +310,11 @@
   var sectorNoTimings = document.getElementById('sector-no-timings');
   var sectorFineBtn = document.getElementById('sector-fine-btn');
   var sectorFineLoading = document.getElementById('sector-fine-loading');
+  var sectorToggleBar = document.getElementById('sector-toggle-bar');
+  var sectorToggleLine = document.getElementById('sector-toggle-line');
   var activeSectorCard = null;
   var sectorChart = null;
+  var sectorChartMode = 'bar';
   var sectorFineMode = false;
   var sectorFineData = null;
 
@@ -336,10 +339,13 @@
         sectorDetail.style.display = '';
         sectorFineMode = false;
         sectorFineData = null;
+        sectorChartMode = 'bar';
+        if (sectorToggleBar) { sectorToggleBar.classList.add('active'); sectorToggleBar.style.display = ''; }
+        if (sectorToggleLine) { sectorToggleLine.classList.remove('active'); sectorToggleLine.style.display = ''; }
         if (sectorFineBtn) {
           sectorFineBtn.style.display = hasTimings ? '' : 'none';
           sectorFineBtn.disabled = false;
-          sectorFineBtn.textContent = 'Load 2-min data';
+          sectorFineBtn.textContent = 'Load 2-min';
         }
         if (sectorFineLoading) sectorFineLoading.style.display = 'none';
 
@@ -355,6 +361,49 @@
           var labels = JSON.parse(card.dataset.labels || '[]');
           var maxAcph = parseInt(card.dataset.max || '0', 10);
           sectorChart = buildRowChart(sectorCanvas, series, labels, maxAcph);
+        }
+
+        if (sectorToggleBar) {
+          sectorToggleBar.addEventListener('click', function () {
+            if (sectorChartMode === 'bar' && !sectorFineMode) return;
+            var wasFine = sectorFineMode;
+            sectorFineMode = false;
+            sectorChartMode = 'bar';
+            sectorToggleBar.classList.add('active');
+            sectorToggleLine.classList.remove('active');
+            if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
+            var series = JSON.parse(activeSectorCard.dataset.series || '[]');
+            var labels = JSON.parse(activeSectorCard.dataset.labels || '[]');
+            var maxAcph = parseInt(activeSectorCard.dataset.max || '0', 10);
+            sectorChart = buildRowChart(sectorCanvas, series, labels, maxAcph);
+            if (wasFine && sectorFineBtn) {
+              sectorFineBtn.style.display = '';
+              sectorFineBtn.disabled = false;
+              sectorFineBtn.textContent = 'Load 2-min';
+              sectorFineBtn.classList.remove('active');
+            }
+          });
+        }
+        if (sectorToggleLine) {
+          sectorToggleLine.addEventListener('click', function () {
+            if (sectorChartMode === 'line' && !sectorFineMode) return;
+            var wasFine = sectorFineMode;
+            sectorFineMode = false;
+            sectorFineData = null;
+            sectorChartMode = 'line';
+            sectorToggleLine.classList.add('active');
+            sectorToggleBar.classList.remove('active');
+            if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
+            var series = JSON.parse(activeSectorCard.dataset.series || '[]');
+            var labels = JSON.parse(activeSectorCard.dataset.labels || '[]');
+            sectorChart = buildRowLineChart(sectorCanvas, series, labels);
+            if (wasFine && sectorFineBtn) {
+              sectorFineBtn.style.display = '';
+              sectorFineBtn.disabled = false;
+              sectorFineBtn.textContent = 'Load 2-min';
+              sectorFineBtn.classList.remove('active');
+            }
+          });
         }
 
 
@@ -380,12 +429,18 @@
           sectorFineMode = true;
           if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
           sectorChart = buildRowLineChart(sectorCanvas, resp.data, resp.labels);
-          sectorFineBtn.style.display = 'none';
-          if (sectorFineLoading) sectorFineLoading.style.display = 'none';
+          if (sectorFineBtn) {
+            sectorFineBtn.disabled = true;
+            sectorFineBtn.textContent = 'Fine';
+            sectorFineBtn.classList.add('active');
+          }
+          if (sectorToggleBar) { sectorToggleBar.classList.remove('active'); }
+          if (sectorToggleLine) { sectorToggleLine.classList.remove('active'); }
         })
         .catch(function () {
           sectorFineBtn.disabled = false;
-          sectorFineBtn.textContent = 'Load 2-min data';
+          sectorFineBtn.textContent = 'Load 2-min';
+          sectorFineBtn.classList.remove('active');
           if (sectorFineLoading) sectorFineLoading.style.display = 'none';
         });
     });
@@ -598,7 +653,8 @@
         if (arrFineBtn) {
           arrFineBtn.style.display = '';
           arrFineBtn.disabled = false;
-          arrFineBtn.textContent = 'Load 2-min data';
+          arrFineBtn.textContent = 'Load 2-min';
+          arrFineBtn.classList.remove('active');
         }
         if (arrFineLoading) arrFineLoading.style.display = 'none';
 
@@ -611,29 +667,53 @@
         arrDetailTitle.textContent = arrCurrentData.name;
         arrDetail.style.display = '';
 
-        arrChartMode = 'bar';
-        arrToggleBar.classList.add('active');
-        arrToggleLine.classList.remove('active');
+        arrChartMode = 'line';
+        arrToggleBar.classList.remove('active');
+        arrToggleLine.classList.add('active');
         renderArrChart();
       });
     });
 
     if (arrToggleBar) {
       arrToggleBar.addEventListener('click', function () {
-        if (arrChartMode === 'bar' || arrFineMode) return;
+        if (arrChartMode === 'bar' && !arrFineMode) return;
+        var wasFine = arrFineMode;
+        arrFineMode = false;
+        arrFineData = null;
         arrChartMode = 'bar';
         arrToggleBar.classList.add('active');
         arrToggleLine.classList.remove('active');
-        renderArrChart();
+        if (arrChart) { arrChart.destroy(); arrChart = null; }
+        if (arrCurrentData) {
+          arrChart = buildArrBarChart(arrCanvas, arrCurrentData.labels, arrCurrentData.total);
+        }
+        if (wasFine && arrFineBtn) {
+          arrFineBtn.style.display = '';
+          arrFineBtn.disabled = false;
+          arrFineBtn.textContent = 'Load 2-min';
+          arrFineBtn.classList.remove('active');
+        }
       });
     }
     if (arrToggleLine) {
       arrToggleLine.addEventListener('click', function () {
-        if (arrChartMode === 'line' || arrFineMode) return;
+        if (arrChartMode === 'line' && !arrFineMode) return;
+        var wasFine = arrFineMode;
+        arrFineMode = false;
+        arrFineData = null;
         arrChartMode = 'line';
         arrToggleLine.classList.add('active');
         arrToggleBar.classList.remove('active');
-        renderArrChart();
+        if (arrChart) { arrChart.destroy(); arrChart = null; }
+        if (arrCurrentData) {
+          arrChart = buildArrLineChart(arrCanvas, arrCurrentData.labels, arrCurrentData.total, arrCurrentData.depSeries);
+        }
+        if (wasFine && arrFineBtn) {
+          arrFineBtn.style.display = '';
+          arrFineBtn.disabled = false;
+          arrFineBtn.textContent = 'Load 2-min';
+          arrFineBtn.classList.remove('active');
+        }
       });
     }
   }
@@ -658,12 +738,19 @@
           arrToggleLine.classList.remove('active');
           if (arrChart) { arrChart.destroy(); arrChart = null; }
           arrChart = buildArrLineChartFine(arrCanvas, resp.labels, resp.total);
-          arrFineBtn.style.display = 'none';
+          if (arrFineBtn) {
+            arrFineBtn.disabled = true;
+            arrFineBtn.textContent = 'Fine';
+            arrFineBtn.classList.add('active');
+          }
+          if (arrToggleBar) { arrToggleBar.classList.remove('active'); }
+          if (arrToggleLine) { arrToggleLine.classList.remove('active'); }
           if (arrFineLoading) arrFineLoading.style.display = 'none';
         })
         .catch(function () {
           arrFineBtn.disabled = false;
-          arrFineBtn.textContent = 'Load 2-min data';
+          arrFineBtn.textContent = 'Load 2-min';
+          arrFineBtn.classList.remove('active');
           if (arrFineLoading) arrFineLoading.style.display = 'none';
         });
     });
