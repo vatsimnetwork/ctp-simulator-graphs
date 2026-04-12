@@ -113,6 +113,14 @@ body {
 .selector-input:focus { border-color: #2A3B90; }
 .dark .selector-input:focus { border-color: #2783C5; }
 
+.topbar-revision {
+  font-size: 12px;
+  color: #64748b;
+  padding: 0 8px;
+  font-weight: 500;
+}
+.dark .topbar-revision { color: #a1a1aa; }
+
 .theme-btn {
   background: none;
   border: none;

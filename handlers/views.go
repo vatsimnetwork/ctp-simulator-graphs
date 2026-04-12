@@ -54,6 +54,7 @@ type baseData struct {
 	Revisions        []uint
 	SelectedEventID  uint
 	SelectedRevision uint
+	CurrentRevision  uint
 	HasRevision      bool
 	EventTitle       string
 	CacheBust        string
@@ -184,6 +185,7 @@ func DepartureAirportsPage(c fiber.Ctx) error {
 		"Events":           bd.Events,
 		"SelectedEventID":  bd.SelectedEventID,
 		"SelectedRevision": bd.SelectedRevision,
+		"CurrentRevision":  resp.RevisionNumber,
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
 		"CacheBust":        bd.CacheBust,
@@ -277,6 +279,7 @@ func renderSectorsPage(c fiber.Ctx, peakMode bool) error {
 		"Events":           bd.Events,
 		"SelectedEventID":  bd.SelectedEventID,
 		"SelectedRevision": bd.SelectedRevision,
+		"CurrentRevision":  resp.RevisionNumber,
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
 		"CacheBust":        bd.CacheBust,
@@ -339,6 +342,7 @@ func ArrivalAirportsPage(c fiber.Ctx) error {
 		"Events":           bd.Events,
 		"SelectedEventID":  bd.SelectedEventID,
 		"SelectedRevision": bd.SelectedRevision,
+		"CurrentRevision":  resp.RevisionNumber,
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
 		"CacheBust":        bd.CacheBust,

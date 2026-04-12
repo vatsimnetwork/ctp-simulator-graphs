@@ -31,16 +31,8 @@
         </select>
       </form>
       {{end}}
-      {{if .Revisions}}
-      <form class="topbar-selector" method="GET" action="{{.CurrentPath}}">
-        <input type="hidden" name="event" value="{{.SelectedEventID}}">
-        <select name="revision" class="selector-input" onchange="this.form.submit()">
-          <option value="">Latest revision</option>
-          {{range .Revisions}}
-          <option value="{{.}}"{{if eq . $.SelectedRevision}} selected{{end}}>Rev {{.}}</option>
-          {{end}}
-        </select>
-      </form>
+      {{if and .Events (gt $.CurrentRevision 0)}}
+      <span class="topbar-revision">Rev {{.CurrentRevision}}</span>
       {{end}}
       <button class="theme-btn" id="theme-toggle" aria-label="Toggle theme">
         <svg class="icon-sun" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
