@@ -175,6 +175,8 @@
         plugins: {
           legend: { display: false },
           tooltip: {
+            mode: 'index',
+            intersect: false,
             callbacks: {
               label: function (ctx) { return ctx.parsed.y + ' slots'; }
             }
