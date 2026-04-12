@@ -236,14 +236,14 @@ type DepAirportSlot struct {
 }
 
 type DepAirportEntry struct {
-	Identifier     string         `json:"identifier"`
-	MaximumSlots   uint16         `json:"maximumSlots"`
-	SlotsAllocated int            `json:"slotsAllocated"`
+	Identifier     string           `json:"identifier"`
+	MaximumSlots   uint16           `json:"maximumSlots"`
+	SlotsAllocated int              `json:"slotsAllocated"`
 	Slots          []DepAirportSlot `json:"slots"`
 }
 
 type DepAirportsResponse struct {
-	RevisionNumber uint             `json:"revisionNumber"`
+	RevisionNumber uint              `json:"revisionNumber"`
 	Airports       []DepAirportEntry `json:"airports"`
 }
 
@@ -430,6 +430,81 @@ func FetchArrAirports(eventID uint) (*ArrAirportsResponse, error) {
 	}
 
 	cache.Store(key, &cachedArrAirports{data: &data, fetchedAt: time.Now()})
+
+	return &data, nil
+}
+
+type SectorFineResponse struct {
+	Labels []string `json:"labels"`
+	Data   []int    `json:"data"`
+}
+
+type ArrivalFineResponse struct {
+	Labels    []string       `json:"labels"`
+	Total     []int          `json:"total"`
+	DepSeries []ArrDepSeries `json:"depSeries"`
+}
+
+func FetchSectorFine(eventID uint, identifier string) (*SectorFineResponse, error) {
+	url := fmt.Sprintf("%s/api/events/%d/charts/sector/%s/fine", config.C.CTPAPIURL, eventID, identifier)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", config.C.CTPAPIKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("charts/sector/fine API returned %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var data SectorFineResponse
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+
+	return &data, nil
+}
+
+func FetchArrivalFine(eventID uint, identifier string) (*ArrivalFineResponse, error) {
+	url := fmt.Sprintf("%s/api/events/%d/charts/arrival/%s/fine", config.C.CTPAPIURL, eventID, identifier)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", config.C.CTPAPIKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("charts/arrival/fine API returned %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var data ArrivalFineResponse
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
 
 	return &data, nil
 }

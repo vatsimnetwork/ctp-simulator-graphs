@@ -42,6 +42,9 @@ func main() {
 	app.Get(base+"/sectors", middleware.RequireAuth, handlers.SectorsTotalOccPage)
 	app.Get(base+"/sectors/peak", middleware.RequireAuth, handlers.SectorsMaxOccPage)
 
+	app.Get(base+"/charts/sector/:identifier/fine", middleware.RequireAuth, handlers.ProxySectorFine)
+	app.Get(base+"/charts/arrival/:identifier/fine", middleware.RequireAuth, handlers.ProxyArrivalFine)
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 

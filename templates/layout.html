@@ -15,7 +15,7 @@
 <header class="topbar">
   <div class="topbar-inner">
     <nav class="topbar-nav">
-      <a class="topbar-brand" href="{{.BasePath}}/">Simulator Results</a>
+      <a class="topbar-brand" href="/">Simulator Results</a>
       <a class="topbar-nav-link{{if eq .ActivePage "airports-departure"}} active{{end}}" href="{{.BasePath}}/airports/departure{{.EventQuery}}">Departures</a>
       <a class="topbar-nav-link{{if or (eq .ActivePage "sectors-peak") (eq .ActivePage "sectors-total")}} active{{end}}" href="{{.BasePath}}/sectors{{.EventQuery}}">Sectors</a>
       <a class="topbar-nav-link{{if eq .ActivePage "airports-arrival"}} active{{end}}" href="{{.BasePath}}/airports/arrival{{.EventQuery}}">Arrivals</a>
@@ -59,6 +59,7 @@
 </div>
 
 <script src="{{.BasePath}}/static/chart.umd.min.js?v={{.CacheBust}}"></script>
+<script>window.CTP_BASE_PATH = {{.BasePath}};</script>
 <script src="{{.BasePath}}/static/simulator.js?v={{.CacheBust}}"></script>
 </body>
 </html>

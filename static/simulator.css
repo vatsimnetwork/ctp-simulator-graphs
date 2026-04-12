@@ -519,6 +519,30 @@ body {
   padding: 16px;
 }
 
+/* Detail panel actions */
+.detail-panel__actions {
+  padding: 8px 16px 12px;
+  display: flex;
+  align-items: center;
+}
+
+/* Detail action button */
+.detail-action-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  color: #64748b;
+  font-family: 'Ubuntu', sans-serif;
+  transition: border-color 0.15s, color 0.15s;
+}
+.dark .detail-action-btn { border-color: #3f3f46; color: #a1a1aa; }
+.detail-action-btn:hover { border-color: #2A3B90; color: #1e293b; }
+.dark .detail-action-btn:hover { border-color: #2783C5; color: #fafafa; }
+.detail-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ── Chart toggle ── */
 
 .chart-toggle {

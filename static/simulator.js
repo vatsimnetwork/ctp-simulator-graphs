@@ -150,6 +150,51 @@
     });
   }
 
+  function buildRowLineChart(canvas, series, labels) {
+    var isDark = document.documentElement.classList.contains('dark');
+    var gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+    var tickColor = isDark ? '#a1a1aa' : '#64748b';
+
+    return new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: series,
+          borderColor: 'rgba(59,130,246,0.8)',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) { return ctx.parsed.y + ' slots'; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: tickColor, font: { family: 'Ubuntu', size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 20 }
+          },
+          y: {
+            min: 0,
+            grid: { color: gridColor },
+            ticks: { color: tickColor, font: { family: 'Ubuntu', size: 10 } }
+          }
+        }
+      }
+    });
+  }
+
   function rebuildOpenCharts() {
     Object.keys(openCharts).forEach(function (canvasId) {
       var entry = openCharts[canvasId];
@@ -261,8 +306,12 @@
   var sectorCanvas = document.getElementById('sector-chart-canvas');
   var sectorChartWrap = document.getElementById('sector-chart-wrap');
   var sectorNoTimings = document.getElementById('sector-no-timings');
+  var sectorFineBtn = document.getElementById('sector-fine-btn');
+  var sectorFineLoading = document.getElementById('sector-fine-loading');
   var activeSectorCard = null;
   var sectorChart = null;
+  var sectorFineMode = false;
+  var sectorFineData = null;
 
   if (sectorGrid) {
     sectorGrid.querySelectorAll('.sector-card').forEach(function (card) {
@@ -283,6 +332,14 @@
 
         sectorDetailTitle.textContent = name;
         sectorDetail.style.display = '';
+        sectorFineMode = false;
+        sectorFineData = null;
+        if (sectorFineBtn) {
+          sectorFineBtn.style.display = hasTimings ? '' : 'none';
+          sectorFineBtn.disabled = false;
+          sectorFineBtn.textContent = 'Load 2-min data';
+        }
+        if (sectorFineLoading) sectorFineLoading.style.display = 'none';
 
         if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
 
@@ -303,6 +360,35 @@
     });
   }
 
+  if (sectorFineBtn) {
+    sectorFineBtn.addEventListener('click', function () {
+      if (!activeSectorCard) return;
+      var eventId = new URLSearchParams(window.location.search).get('event');
+      var sectorId = activeSectorCard.dataset.name;
+      if (!eventId || !sectorId) return;
+
+      sectorFineBtn.disabled = true;
+      sectorFineBtn.textContent = 'Loading...';
+      if (sectorFineLoading) sectorFineLoading.style.display = '';
+
+      fetch(window.CTP_BASE_PATH + '/charts/sector/' + encodeURIComponent(sectorId) + '/fine?event=' + encodeURIComponent(eventId))
+        .then(function (r) { return r.json(); })
+        .then(function (resp) {
+          sectorFineData = resp;
+          sectorFineMode = true;
+          if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
+          sectorChart = buildRowLineChart(sectorCanvas, resp.data, resp.labels);
+          sectorFineBtn.style.display = 'none';
+          if (sectorFineLoading) sectorFineLoading.style.display = 'none';
+        })
+        .catch(function () {
+          sectorFineBtn.disabled = false;
+          sectorFineBtn.textContent = 'Load 2-min data';
+          if (sectorFineLoading) sectorFineLoading.style.display = 'none';
+        });
+    });
+  }
+
   /* ── Arrival airports grid ── */
   var arrGrid = document.getElementById('arr-airport-grid');
   var arrDetail = document.getElementById('arr-detail');
@@ -310,10 +396,14 @@
   var arrCanvas = document.getElementById('arr-chart-canvas');
   var arrToggleBar = document.getElementById('arr-toggle-bar');
   var arrToggleLine = document.getElementById('arr-toggle-line');
+  var arrFineBtn = document.getElementById('arr-fine-btn');
+  var arrFineLoading = document.getElementById('arr-fine-loading');
   var activeArrCard = null;
   var arrChart = null;
   var arrChartMode = 'bar';
   var arrCurrentData = null;
+  var arrFineMode = false;
+  var arrFineData = null;
 
   function buildArrBarChart(canvas, labels, total) {
     var isDark = document.documentElement.classList.contains('dark');
@@ -421,8 +511,61 @@
     });
   }
 
+  function buildArrLineChartFine(canvas, labels, total) {
+    var isDark = document.documentElement.classList.contains('dark');
+    var gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+    var tickColor = isDark ? '#a1a1aa' : '#64748b';
+
+    return new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: total,
+          borderColor: 'rgba(59,130,246,0.8)',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              label: function (ctx) { return ctx.parsed.y + ' arrivals'; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: tickColor, font: { family: 'Ubuntu', size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 30 }
+          },
+          y: {
+            min: 0,
+            grid: { color: gridColor },
+            ticks: { color: tickColor, font: { family: 'Ubuntu', size: 10 } }
+          }
+        }
+      }
+    });
+  }
+
   function renderArrChart() {
-    if (!arrCurrentData || !arrCanvas) return;
+    if (!arrCanvas) return;
+    if (arrFineMode && arrFineData) {
+      if (arrChart) { arrChart.destroy(); arrChart = null; }
+      arrChart = buildArrLineChartFine(arrCanvas, arrFineData.labels, arrFineData.total);
+      return;
+    }
+    if (!arrCurrentData) return;
     if (arrChart) { arrChart.destroy(); arrChart = null; }
     if (arrChartMode === 'bar') {
       arrChart = buildArrBarChart(arrCanvas, arrCurrentData.labels, arrCurrentData.total);
@@ -440,11 +583,22 @@
           activeArrCard = null;
           if (arrChart) { arrChart.destroy(); arrChart = null; }
           arrCurrentData = null;
+          arrFineMode = false;
+          arrFineData = null;
           return;
         }
         if (activeArrCard) activeArrCard.classList.remove('active');
         card.classList.add('active');
         activeArrCard = card;
+
+        arrFineMode = false;
+        arrFineData = null;
+        if (arrFineBtn) {
+          arrFineBtn.style.display = '';
+          arrFineBtn.disabled = false;
+          arrFineBtn.textContent = 'Load 2-min data';
+        }
+        if (arrFineLoading) arrFineLoading.style.display = 'none';
 
         arrCurrentData = {
           name: card.dataset.name,
@@ -464,7 +618,7 @@
 
     if (arrToggleBar) {
       arrToggleBar.addEventListener('click', function () {
-        if (arrChartMode === 'bar') return;
+        if (arrChartMode === 'bar' || arrFineMode) return;
         arrChartMode = 'bar';
         arrToggleBar.classList.add('active');
         arrToggleLine.classList.remove('active');
@@ -473,12 +627,43 @@
     }
     if (arrToggleLine) {
       arrToggleLine.addEventListener('click', function () {
-        if (arrChartMode === 'line') return;
+        if (arrChartMode === 'line' || arrFineMode) return;
         arrChartMode = 'line';
         arrToggleLine.classList.add('active');
         arrToggleBar.classList.remove('active');
         renderArrChart();
       });
     }
+  }
+
+  if (arrFineBtn) {
+    arrFineBtn.addEventListener('click', function () {
+      if (!activeArrCard) return;
+      var eventId = new URLSearchParams(window.location.search).get('event');
+      var arrId = activeArrCard.dataset.name;
+      if (!eventId || !arrId) return;
+
+      arrFineBtn.disabled = true;
+      arrFineBtn.textContent = 'Loading...';
+      if (arrFineLoading) arrFineLoading.style.display = '';
+
+      fetch(window.CTP_BASE_PATH + '/charts/arrival/' + encodeURIComponent(arrId) + '/fine?event=' + encodeURIComponent(eventId))
+        .then(function (r) { return r.json(); })
+        .then(function (resp) {
+          arrFineData = resp;
+          arrFineMode = true;
+          arrToggleBar.classList.remove('active');
+          arrToggleLine.classList.remove('active');
+          if (arrChart) { arrChart.destroy(); arrChart = null; }
+          arrChart = buildArrLineChartFine(arrCanvas, resp.labels, resp.total);
+          arrFineBtn.style.display = 'none';
+          if (arrFineLoading) arrFineLoading.style.display = 'none';
+        })
+        .catch(function () {
+          arrFineBtn.disabled = false;
+          arrFineBtn.textContent = 'Load 2-min data';
+          if (arrFineLoading) arrFineLoading.style.display = 'none';
+        });
+    });
   }
 })();

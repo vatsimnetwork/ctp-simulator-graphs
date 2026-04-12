@@ -194,14 +194,14 @@ func DepartureAirportsPage(c fiber.Ctx) error {
 // ── Sectors page ─────────────────────────────────────────────────────────────
 
 type sectorView struct {
-	Identifier    string
-	MaxAcPerHour  uint16
-	RefLine       int // reference line value for the chart (0 = no line)
-	UtilPct       float64
-	CardClass     string
-	HasTimings    bool
-	Peak          int
-	PeakLabel     string
+	Identifier     string
+	MaxAcPerHour   uint16
+	RefLine        int // reference line value for the chart (0 = no line)
+	UtilPct        float64
+	CardClass      string
+	HasTimings     bool
+	Peak           int
+	PeakLabel      string
 	TimeSeriesJSON template.JS
 	TimeLabelsJSON template.JS
 }
@@ -285,7 +285,7 @@ func renderSectorsPage(c fiber.Ctx, peakMode bool) error {
 	}, "layout")
 }
 
-func SectorsMaxOccPage(c fiber.Ctx) error  { return renderSectorsPage(c, true) }
+func SectorsMaxOccPage(c fiber.Ctx) error   { return renderSectorsPage(c, true) }
 func SectorsTotalOccPage(c fiber.Ctx) error { return renderSectorsPage(c, false) }
 
 // ── Arrival airports page ─────────────────────────────────────────────────────
@@ -344,4 +344,46 @@ func ArrivalAirportsPage(c fiber.Ctx) error {
 		"CacheBust":        bd.CacheBust,
 		"Airports":         airports,
 	}, "layout")
+}
+
+func ProxySectorFine(c fiber.Ctx) error {
+	eventID := c.Query("event")
+	identifier := c.Params("identifier")
+	if eventID == "" || identifier == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "event and identifier are required")
+	}
+
+	id, err := strconv.ParseUint(eventID, 10, 64)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid event id")
+	}
+
+	data, err := services.FetchSectorFine(uint(id), identifier)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to fetch sector fine data")
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to fetch data")
+	}
+
+	return c.JSON(data)
+}
+
+func ProxyArrivalFine(c fiber.Ctx) error {
+	eventID := c.Query("event")
+	identifier := c.Params("identifier")
+	if eventID == "" || identifier == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "event and identifier are required")
+	}
+
+	id, err := strconv.ParseUint(eventID, 10, 64)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid event id")
+	}
+
+	data, err := services.FetchArrivalFine(uint(id), identifier)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to fetch arrival fine data")
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to fetch data")
+	}
+
+	return c.JSON(data)
 }
