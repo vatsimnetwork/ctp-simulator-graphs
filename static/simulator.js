@@ -281,31 +281,52 @@
   var depFineMode = false;
   var depCurrentSlots = [];
 
+  var DEP_CHART_COLORS = [
+    '#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
+    '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1',
+    '#14b8a6', '#f43f5e'
+  ];
+
   function bucketDepSlots(slots, stepMin) {
-    if (!slots || !slots.length) return { labels: [], data: [] };
+    if (!slots || !slots.length) return { labels: [], total: [], arrSeries: [] };
     var parsed = [];
     slots.forEach(function (s) {
       var t = (s.depTime || '').toString();
       var m = t.match(/(\d{1,2}):(\d{2})/);
       if (!m) return;
-      parsed.push(parseInt(m[1], 10) * 60 + parseInt(m[2], 10));
+      parsed.push({ t: parseInt(m[1], 10) * 60 + parseInt(m[2], 10), arr: s.arr || '—' });
     });
-    if (!parsed.length) return { labels: [], data: [] };
-    parsed.sort(function (a, b) { return a - b; });
-    var start = Math.floor(parsed[0] / stepMin) * stepMin;
-    var end = Math.floor(parsed[parsed.length - 1] / stepMin) * stepMin;
-    var labels = [];
-    var data = [];
-    var idx = 0;
-    for (var t = start; t <= end; t += stepMin) {
-      var count = 0;
-      while (idx < parsed.length && parsed[idx] < t + stepMin) { count++; idx++; }
-      var hh = ('0' + Math.floor(t / 60)).slice(-2);
-      var mm = ('0' + (t % 60)).slice(-2);
-      labels.push(hh + ':' + mm);
-      data.push(count);
+    if (!parsed.length) return { labels: [], total: [], arrSeries: [] };
+    var minT = parsed[0].t, maxT = parsed[0].t;
+    parsed.forEach(function (p) {
+      if (p.t < minT) minT = p.t;
+      if (p.t > maxT) maxT = p.t;
+    });
+    var start = Math.floor(minT / stepMin) * stepMin;
+    var end = Math.floor(maxT / stepMin) * stepMin;
+    var length = Math.floor((end - start) / stepMin) + 1;
+    var labels = new Array(length);
+    for (var i = 0; i < length; i++) {
+      var t = start + i * stepMin;
+      labels[i] = ('0' + Math.floor(t / 60)).slice(-2) + ':' + ('0' + (t % 60)).slice(-2);
     }
-    return { labels: labels, data: data };
+    var total = new Array(length).fill(0);
+    var perArr = {};
+    parsed.forEach(function (p) {
+      var idx = Math.floor((p.t - start) / stepMin);
+      total[idx]++;
+      if (!perArr[p.arr]) perArr[p.arr] = new Array(length).fill(0);
+      perArr[p.arr][idx]++;
+    });
+    var arrIdents = Object.keys(perArr).sort();
+    var arrSeries = arrIdents.map(function (arr, ci) {
+      return {
+        dep: arr,
+        color: DEP_CHART_COLORS[ci % DEP_CHART_COLORS.length],
+        buckets: perArr[arr]
+      };
+    });
+    return { labels: labels, total: total, arrSeries: arrSeries };
   }
 
   function renderDepView() {
@@ -325,7 +346,7 @@
       if (depChart) { depChart.destroy(); depChart = null; }
       var step = depFineMode ? 2 : 20;
       var b = bucketDepSlots(depCurrentSlots, step);
-      depChart = buildRowLineChart(depChartCanvas, b.data, b.labels);
+      depChart = buildArrLineChart(depChartCanvas, b.labels, b.total, b.arrSeries);
       if (depFineBtn) {
         depFineBtn.style.display = '';
         depFineBtn.disabled = depFineMode;
@@ -383,10 +404,6 @@
         var name = card.dataset.name;
         var slots = JSON.parse(card.dataset.slots || '[]');
         depCurrentSlots = slots;
-        depViewMode = 'list';
-        depFineMode = false;
-        if (depToggleList) depToggleList.classList.add('active');
-        if (depToggleLine) depToggleLine.classList.remove('active');
         depDetailTitle.textContent = name + ' — ' + slots.length + ' slot' + (slots.length !== 1 ? 's' : '');
 
         depTbody.innerHTML = '';
@@ -420,6 +437,25 @@
   var sectorFineMode = false;
   var sectorFineData = null;
 
+  var SECTOR_STATE_KEY = 'ctpChartsSectorState';
+  function saveSectorState() {
+    try {
+      var state = {
+        selected: activeSectorCard ? activeSectorCard.dataset.name : null,
+        search: (document.getElementById('sector-search-input') || {}).value || '',
+        mode: sectorChartMode,
+        fine: sectorFineMode
+      };
+      sessionStorage.setItem(SECTOR_STATE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
+  function loadSectorState() {
+    try {
+      var raw = sessionStorage.getItem(SECTOR_STATE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
   if (sectorGrid) {
     sectorGrid.querySelectorAll('.sector-card').forEach(function (card) {
       card.addEventListener('click', function () {
@@ -428,6 +464,7 @@
           sectorDetail.style.display = 'none';
           activeSectorCard = null;
           if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
+          saveSectorState();
           return;
         }
         if (activeSectorCard) activeSectorCard.classList.remove('active');
@@ -464,6 +501,7 @@
           var maxAcph = parseInt(card.dataset.max || '0', 10);
           sectorChart = buildRowChart(sectorCanvas, series, labels, maxAcph);
         }
+        saveSectorState();
 
         if (sectorToggleBar) {
           sectorToggleBar.addEventListener('click', function () {
@@ -478,6 +516,7 @@
             var labels = JSON.parse(activeSectorCard.dataset.labels || '[]');
             var maxAcph = parseInt(activeSectorCard.dataset.max || '0', 10);
             sectorChart = buildRowChart(sectorCanvas, series, labels, maxAcph);
+            saveSectorState();
             if (wasFine && sectorFineBtn) {
               sectorFineBtn.style.display = '';
               sectorFineBtn.disabled = false;
@@ -499,6 +538,7 @@
             var series = JSON.parse(activeSectorCard.dataset.series || '[]');
             var labels = JSON.parse(activeSectorCard.dataset.labels || '[]');
             sectorChart = buildRowLineChart(sectorCanvas, series, labels);
+            saveSectorState();
             if (wasFine && sectorFineBtn) {
               sectorFineBtn.style.display = '';
               sectorFineBtn.disabled = false;
@@ -530,8 +570,33 @@
         sectorSearchCount.textContent = visible + ' of ' + sectorCards.length;
       }
     };
-    sectorSearchInput.addEventListener('input', applySectorFilter);
+    sectorSearchInput.addEventListener('input', function () {
+      applySectorFilter();
+      saveSectorState();
+    });
     applySectorFilter();
+  }
+
+  if (sectorGrid) {
+    var savedState = loadSectorState();
+    if (savedState) {
+      if (savedState.search && sectorSearchInput) {
+        sectorSearchInput.value = savedState.search;
+        sectorSearchInput.dispatchEvent(new Event('input'));
+      }
+      if (savedState.selected) {
+        var target = sectorGrid.querySelector('.sector-card[data-name="' + savedState.selected + '"]');
+        if (target) {
+          target.click();
+          if (savedState.mode === 'line' && sectorToggleLine) {
+            sectorToggleLine.click();
+          }
+        }
+      }
+    }
+    document.querySelectorAll('.sectors-subnav__tab').forEach(function (tab) {
+      tab.addEventListener('click', function () { saveSectorState(); });
+    });
   }
 
   if (sectorFineBtn) {
