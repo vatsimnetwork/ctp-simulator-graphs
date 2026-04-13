@@ -88,6 +88,17 @@
     return 'rgba(22,163,74,0.75)';
   }
 
+  function rollingHourly(data, windowSize) {
+    var result = new Array(data.length);
+    var sum = 0;
+    for (var i = 0; i < data.length; i++) {
+      sum += data[i];
+      if (i >= windowSize) sum -= data[i - windowSize];
+      result[i] = sum;
+    }
+    return result;
+  }
+
   function buildRowChart(canvas, series, labels, maxSlots) {
     var isDark = document.documentElement.classList.contains('dark');
     var gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
@@ -346,7 +357,7 @@
       if (depChart) { depChart.destroy(); depChart = null; }
       var step = depFineMode ? 2 : 20;
       var b = bucketDepSlots(depCurrentSlots, step);
-      depChart = buildArrLineChart(depChartCanvas, b.labels, b.total, b.arrSeries);
+      depChart = buildArrLineChart(depChartCanvas, b.labels, b.total, b.arrSeries, step);
       if (depFineBtn) {
         depFineBtn.style.display = '';
         depFineBtn.disabled = depFineMode;
@@ -654,6 +665,8 @@
     var isDark = document.documentElement.classList.contains('dark');
     var gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
     var tickColor = isDark ? '#a1a1aa' : '#64748b';
+    var hourlyColor = isDark ? 'rgba(250,204,21,0.75)' : 'rgba(161,98,7,0.7)';
+    var hourly = rollingHourly(total, 3);
     return new Chart(canvas, {
       type: 'bar',
       data: {
@@ -662,7 +675,20 @@
           data: total,
           backgroundColor: 'rgba(59,130,246,0.7)',
           borderRadius: 2,
-          borderSkipped: false
+          borderSkipped: false,
+          yAxisID: 'y'
+        }, {
+          label: 'Hourly',
+          data: hourly,
+          type: 'line',
+          borderColor: hourlyColor,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [6, 3],
+          pointRadius: 0,
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'yHourly'
         }]
       },
       options: {
@@ -671,7 +697,12 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            callbacks: { label: function (ctx) { return ctx.parsed.y + ' arrivals'; } }
+            callbacks: {
+              label: function (ctx) {
+                if (ctx.datasetIndex === 1) return ctx.parsed.y + '/hr';
+                return ctx.parsed.y + ' arrivals';
+              }
+            }
           }
         },
         scales: {
@@ -680,20 +711,32 @@
             ticks: { color: tickColor, font: { family: 'Ubuntu', size: 10 }, maxRotation: 0 }
           },
           y: {
+            position: 'left',
             min: 0,
             grid: { color: gridColor },
             ticks: { color: tickColor, font: { family: 'Ubuntu', size: 10 } }
+          },
+          yHourly: {
+            position: 'right',
+            min: 0,
+            grid: { drawOnChartArea: false },
+            ticks: { color: hourlyColor, font: { family: 'Ubuntu', size: 10 } },
+            title: { display: true, text: '/hr', color: hourlyColor, font: { family: 'Ubuntu', size: 10 } }
           }
         }
       }
     });
   }
 
-  function buildArrLineChart(canvas, labels, total, depSeries) {
+  function buildArrLineChart(canvas, labels, total, depSeries, stepMin) {
     var isDark = document.documentElement.classList.contains('dark');
     var gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
     var tickColor = isDark ? '#a1a1aa' : '#64748b';
     var totalColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.35)';
+    var hourlyColor = isDark ? 'rgba(250,204,21,0.75)' : 'rgba(161,98,7,0.7)';
+    var step = stepMin || 20;
+    var windowSize = Math.round(60 / step);
+    var hourly = rollingHourly(total, windowSize);
 
     var datasets = depSeries.map(function (ds) {
       return {
@@ -704,7 +747,8 @@
         borderWidth: 2,
         pointRadius: 2,
         tension: 0.3,
-        fill: false
+        fill: false,
+        yAxisID: 'y'
       };
     });
     datasets.push({
@@ -716,7 +760,20 @@
       borderDash: [4, 3],
       pointRadius: 0,
       tension: 0.3,
-      fill: false
+      fill: false,
+      yAxisID: 'y'
+    });
+    datasets.push({
+      label: 'Hourly',
+      data: hourly,
+      borderColor: hourlyColor,
+      backgroundColor: 'transparent',
+      borderWidth: 2.5,
+      borderDash: [6, 3],
+      pointRadius: 0,
+      tension: 0.3,
+      fill: false,
+      yAxisID: 'yHourly'
     });
 
     return new Chart(canvas, {
@@ -738,7 +795,13 @@
           },
           tooltip: {
             mode: 'index',
-            intersect: false
+            intersect: false,
+            callbacks: {
+              label: function (ctx) {
+                if (ctx.dataset.label === 'Hourly') return 'Hourly: ' + ctx.parsed.y + '/hr';
+                return ctx.dataset.label + ': ' + ctx.parsed.y;
+              }
+            }
           }
         },
         scales: {
@@ -747,9 +810,17 @@
             ticks: { color: tickColor, font: { family: 'Ubuntu', size: 10 }, maxRotation: 0 }
           },
           y: {
+            position: 'left',
             min: 0,
             grid: { color: gridColor },
             ticks: { color: tickColor, font: { family: 'Ubuntu', size: 10 } }
+          },
+          yHourly: {
+            position: 'right',
+            min: 0,
+            grid: { drawOnChartArea: false },
+            ticks: { color: hourlyColor, font: { family: 'Ubuntu', size: 10 } },
+            title: { display: true, text: '/hr', color: hourlyColor, font: { family: 'Ubuntu', size: 10 } }
           }
         }
       }
@@ -760,31 +831,58 @@
     var isDark = document.documentElement.classList.contains('dark');
     var gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
     var tickColor = isDark ? '#a1a1aa' : '#64748b';
+    var hourlyColor = isDark ? 'rgba(250,204,21,0.75)' : 'rgba(161,98,7,0.7)';
+    var hourly = rollingHourly(total, 30);
 
     return new Chart(canvas, {
       type: 'line',
       data: {
         labels: labels,
         datasets: [{
+          label: 'Arrivals',
           data: total,
           borderColor: 'rgba(59,130,246,0.8)',
           backgroundColor: 'rgba(59,130,246,0.1)',
           borderWidth: 2,
           pointRadius: 0,
           tension: 0.3,
-          fill: true
+          fill: true,
+          yAxisID: 'y'
+        }, {
+          label: 'Hourly',
+          data: hourly,
+          borderColor: hourlyColor,
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          borderDash: [6, 3],
+          pointRadius: 0,
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'yHourly'
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              color: tickColor,
+              font: { family: 'Ubuntu', size: 10 },
+              boxWidth: 12,
+              padding: 8
+            }
+          },
           tooltip: {
             mode: 'index',
             intersect: false,
             callbacks: {
-              label: function (ctx) { return ctx.parsed.y + ' arrivals'; }
+              label: function (ctx) {
+                if (ctx.dataset.label === 'Hourly') return 'Hourly: ' + ctx.parsed.y + '/hr';
+                return ctx.parsed.y + ' arrivals';
+              }
             }
           }
         },
@@ -794,9 +892,17 @@
             ticks: { color: tickColor, font: { family: 'Ubuntu', size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 30 }
           },
           y: {
+            position: 'left',
             min: 0,
             grid: { color: gridColor },
             ticks: { color: tickColor, font: { family: 'Ubuntu', size: 10 } }
+          },
+          yHourly: {
+            position: 'right',
+            min: 0,
+            grid: { drawOnChartArea: false },
+            ticks: { color: hourlyColor, font: { family: 'Ubuntu', size: 10 } },
+            title: { display: true, text: '/hr', color: hourlyColor, font: { family: 'Ubuntu', size: 10 } }
           }
         }
       }
