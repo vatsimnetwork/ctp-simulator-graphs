@@ -26,6 +26,11 @@
     </div>
   </div>
 
+  <div class="sector-search-wrap">
+    <input type="text" class="filter-input" id="sector-search-input" placeholder="Search sectors...">
+    <span class="sector-search-count" id="sector-search-count"></span>
+  </div>
+
   <div class="card-grid" id="sector-grid">
     {{range $i, $s := .Sectors}}
     <div class="grid-card grid-card--{{$s.CardClass}} sector-card"

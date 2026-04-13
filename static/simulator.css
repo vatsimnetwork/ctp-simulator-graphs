@@ -273,6 +273,23 @@ body {
 .dark .filter-input:focus { border-color: #2783C5; }
 .filter-input::placeholder { color: #94a3b8; }
 
+#dep-list-wrap {
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.sector-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sector-search-count {
+  font-size: 12px;
+  color: #64748b;
+}
+.dark .sector-search-count { color: #a1a1aa; }
+
 .filter-count {
   font-size: 12px;
   color: #64748b;
@@ -598,7 +615,8 @@ body {
 /* ── Sectors / Arrivals pinned-chart layout ── */
 
 .sectors-layout .detail-panel,
-.arrivals-layout .detail-panel {
+.arrivals-layout .detail-panel,
+.departures-layout .detail-panel {
   position: sticky;
   top: 48px;
   z-index: 10;
@@ -610,7 +628,8 @@ body {
   background: #fcfcfc;
 }
 .dark .sectors-layout .detail-panel,
-.dark .arrivals-layout .detail-panel {
+.dark .arrivals-layout .detail-panel,
+.dark .departures-layout .detail-panel {
   background: #18181b;
 }
 

@@ -269,7 +269,102 @@
   var depDetail = document.getElementById('dep-detail');
   var depDetailTitle = document.getElementById('dep-detail-title');
   var depTbody = document.getElementById('dep-slot-tbody');
+  var depListWrap = document.getElementById('dep-list-wrap');
+  var depChartWrap = document.getElementById('dep-chart-wrap');
+  var depChartCanvas = document.getElementById('dep-chart-canvas');
+  var depToggleList = document.getElementById('dep-toggle-list');
+  var depToggleLine = document.getElementById('dep-toggle-line');
+  var depFineBtn = document.getElementById('dep-fine-btn');
   var activeDepCard = null;
+  var depChart = null;
+  var depViewMode = 'list';
+  var depFineMode = false;
+  var depCurrentSlots = [];
+
+  function bucketDepSlots(slots, stepMin) {
+    if (!slots || !slots.length) return { labels: [], data: [] };
+    var parsed = [];
+    slots.forEach(function (s) {
+      var t = (s.depTime || '').toString();
+      var m = t.match(/(\d{1,2}):(\d{2})/);
+      if (!m) return;
+      parsed.push(parseInt(m[1], 10) * 60 + parseInt(m[2], 10));
+    });
+    if (!parsed.length) return { labels: [], data: [] };
+    parsed.sort(function (a, b) { return a - b; });
+    var start = Math.floor(parsed[0] / stepMin) * stepMin;
+    var end = Math.floor(parsed[parsed.length - 1] / stepMin) * stepMin;
+    var labels = [];
+    var data = [];
+    var idx = 0;
+    for (var t = start; t <= end; t += stepMin) {
+      var count = 0;
+      while (idx < parsed.length && parsed[idx] < t + stepMin) { count++; idx++; }
+      var hh = ('0' + Math.floor(t / 60)).slice(-2);
+      var mm = ('0' + (t % 60)).slice(-2);
+      labels.push(hh + ':' + mm);
+      data.push(count);
+    }
+    return { labels: labels, data: data };
+  }
+
+  function renderDepView() {
+    if (depViewMode === 'list') {
+      if (depListWrap) depListWrap.style.display = '';
+      if (depChartWrap) depChartWrap.style.display = 'none';
+      if (depChart) { depChart.destroy(); depChart = null; }
+      if (depFineBtn) {
+        depFineBtn.style.display = '';
+        depFineBtn.disabled = false;
+        depFineBtn.textContent = 'Load 2-min';
+        depFineBtn.classList.remove('active');
+      }
+    } else {
+      if (depListWrap) depListWrap.style.display = 'none';
+      if (depChartWrap) depChartWrap.style.display = '';
+      if (depChart) { depChart.destroy(); depChart = null; }
+      var step = depFineMode ? 2 : 20;
+      var b = bucketDepSlots(depCurrentSlots, step);
+      depChart = buildRowLineChart(depChartCanvas, b.data, b.labels);
+      if (depFineBtn) {
+        depFineBtn.style.display = '';
+        depFineBtn.disabled = depFineMode;
+        depFineBtn.textContent = depFineMode ? 'Fine' : 'Load 2-min';
+        depFineBtn.classList.toggle('active', depFineMode);
+      }
+    }
+  }
+
+  if (depToggleList) {
+    depToggleList.addEventListener('click', function () {
+      if (depViewMode === 'list') return;
+      depViewMode = 'list';
+      depFineMode = false;
+      depToggleList.classList.add('active');
+      if (depToggleLine) depToggleLine.classList.remove('active');
+      renderDepView();
+    });
+  }
+  if (depToggleLine) {
+    depToggleLine.addEventListener('click', function () {
+      if (depViewMode === 'line' && !depFineMode) return;
+      depViewMode = 'line';
+      depFineMode = false;
+      depToggleLine.classList.add('active');
+      if (depToggleList) depToggleList.classList.remove('active');
+      renderDepView();
+    });
+  }
+  if (depFineBtn) {
+    depFineBtn.addEventListener('click', function () {
+      if (depFineMode) return;
+      depViewMode = 'line';
+      depFineMode = true;
+      if (depToggleLine) depToggleLine.classList.add('active');
+      if (depToggleList) depToggleList.classList.remove('active');
+      renderDepView();
+    });
+  }
 
   if (depGrid) {
     depGrid.querySelectorAll('.dep-airport-card').forEach(function (card) {
@@ -278,6 +373,7 @@
           card.classList.remove('active');
           depDetail.style.display = 'none';
           activeDepCard = null;
+          if (depChart) { depChart.destroy(); depChart = null; }
           return;
         }
         if (activeDepCard) activeDepCard.classList.remove('active');
@@ -286,6 +382,11 @@
 
         var name = card.dataset.name;
         var slots = JSON.parse(card.dataset.slots || '[]');
+        depCurrentSlots = slots;
+        depViewMode = 'list';
+        depFineMode = false;
+        if (depToggleList) depToggleList.classList.add('active');
+        if (depToggleLine) depToggleLine.classList.remove('active');
         depDetailTitle.textContent = name + ' — ' + slots.length + ' slot' + (slots.length !== 1 ? 's' : '');
 
         depTbody.innerHTML = '';
@@ -296,6 +397,7 @@
         });
 
         depDetail.style.display = '';
+        renderDepView();
         depDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     });
@@ -409,6 +511,27 @@
 
       });
     });
+  }
+
+  var sectorSearchInput = document.getElementById('sector-search-input');
+  var sectorSearchCount = document.getElementById('sector-search-count');
+  if (sectorSearchInput && sectorGrid) {
+    var sectorCards = sectorGrid.querySelectorAll('.sector-card');
+    var applySectorFilter = function () {
+      var q = sectorSearchInput.value.trim().toUpperCase();
+      var visible = 0;
+      sectorCards.forEach(function (c) {
+        var name = (c.dataset.name || '').toUpperCase();
+        var match = !q || name.indexOf(q) !== -1;
+        c.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+      if (sectorSearchCount) {
+        sectorSearchCount.textContent = visible + ' of ' + sectorCards.length;
+      }
+    };
+    sectorSearchInput.addEventListener('input', applySectorFilter);
+    applySectorFilter();
   }
 
   if (sectorFineBtn) {
