@@ -17,7 +17,9 @@
     <nav class="topbar-nav">
       <a class="topbar-brand" href="/">Simulator Results</a>
       <a class="topbar-nav-link{{if eq .ActivePage "airports-departure"}} active{{end}}" href="{{.BasePath}}/airports/departure{{.EventQuery}}">Departures</a>
+      {{if .CanViewSectors}}
       <a class="topbar-nav-link{{if or (eq .ActivePage "sectors-peak") (eq .ActivePage "sectors-total")}} active{{end}}" href="{{.BasePath}}/sectors{{.EventQuery}}">Sectors</a>
+      {{end}}
       <a class="topbar-nav-link{{if eq .ActivePage "airports-arrival"}} active{{end}}" href="{{.BasePath}}/airports/arrival{{.EventQuery}}">Arrivals</a>
     </nav>
     <div class="topbar-right">

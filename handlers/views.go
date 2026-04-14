@@ -58,6 +58,18 @@ type baseData struct {
 	HasRevision      bool
 	EventTitle       string
 	CacheBust        string
+	CanViewSectors   bool
+}
+
+func canViewSectors(c fiber.Ctx) bool {
+	rolesVal := c.Locals("roles")
+	roles, _ := rolesVal.([]string)
+	for _, r := range roles {
+		if r == "administrator" || r == "developer" {
+			return true
+		}
+	}
+	return false
 }
 
 func newBaseData(c fiber.Ctx, activePage string) baseData {
@@ -109,6 +121,7 @@ func newBaseData(c fiber.Ctx, activePage string) baseData {
 		SelectedRevision: revision,
 		EventTitle:       title,
 		CacheBust:        strconv.FormatInt(time.Now().Unix(), 10),
+		CanViewSectors:   canViewSectors(c),
 	}
 }
 
@@ -189,6 +202,7 @@ func DepartureAirportsPage(c fiber.Ctx) error {
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
 		"CacheBust":        bd.CacheBust,
+		"CanViewSectors":   bd.CanViewSectors,
 		"Airports":         airports,
 	}, "layout")
 }
@@ -283,6 +297,7 @@ func renderSectorsPage(c fiber.Ctx, peakMode bool) error {
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
 		"CacheBust":        bd.CacheBust,
+		"CanViewSectors":   bd.CanViewSectors,
 		"Sectors":          sectors,
 		"BodyClass":        "sectors-page",
 	}, "layout")
@@ -346,6 +361,7 @@ func ArrivalAirportsPage(c fiber.Ctx) error {
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
 		"CacheBust":        bd.CacheBust,
+		"CanViewSectors":   bd.CanViewSectors,
 		"Airports":         airports,
 	}, "layout")
 }

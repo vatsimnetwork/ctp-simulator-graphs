@@ -67,6 +67,19 @@ func validateSession(c fiber.Ctx) (*sessionResponse, error) {
 	return &session, nil
 }
 
+func RequireRole(allowed ...string) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		rolesVal := c.Locals("roles")
+		roles, _ := rolesVal.([]string)
+		for _, r := range allowed {
+			if slices.Contains(roles, r) {
+				return c.Next()
+			}
+		}
+		return c.Status(fiber.StatusForbidden).SendString("403 Forbidden")
+	}
+}
+
 func RequireAuth(c fiber.Ctx) error {
 	session, err := validateSession(c)
 	if err != nil {
