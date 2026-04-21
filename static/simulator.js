@@ -433,20 +433,80 @@
 
   /* ── Sectors grid ── */
   var sectorGrid = document.getElementById('sector-grid');
+  var sectorLayout = document.querySelector('.sectors-layout');
+  var sectorPeakMode = sectorLayout && sectorLayout.dataset.peakMode === '1';
+  var sectorCanViewNumbers = sectorLayout && sectorLayout.dataset.canViewNumbers === '1';
   var sectorDetail = document.getElementById('sector-detail');
   var sectorDetailTitle = document.getElementById('sector-detail-title');
   var sectorCanvas = document.getElementById('sector-chart-canvas');
   var sectorChartWrap = document.getElementById('sector-chart-wrap');
   var sectorNoTimings = document.getElementById('sector-no-timings');
+  var sectorLoading = document.getElementById('sector-loading');
   var sectorFineBtn = document.getElementById('sector-fine-btn');
-  var sectorFineLoading = document.getElementById('sector-fine-loading');
   var sectorToggleBar = document.getElementById('sector-toggle-bar');
   var sectorToggleLine = document.getElementById('sector-toggle-line');
   var activeSectorCard = null;
   var sectorChart = null;
   var sectorChartMode = 'bar';
   var sectorFineMode = false;
-  var sectorFineData = null;
+  var sectorBucketedData = null;
+
+  function buildSectorBucketedChart(kind) {
+    if (!sectorBucketedData) return;
+    var labels = (sectorBucketedData.buckets || []).map(function (b) { return b.label; });
+    var series = (sectorBucketedData.buckets || []).map(function (b) {
+      return sectorPeakMode ? b.peakCount : b.uniqueCount;
+    });
+    var refLine = sectorPeakMode ? sectorBucketedData.estimatedMaxOccupancy : sectorBucketedData.estimatedTotalOccupancy;
+    if (!sectorCanViewNumbers) refLine = 0;
+
+    var chart = kind === 'line'
+      ? buildRowLineChart(sectorCanvas, series, labels)
+      : buildRowChart(sectorCanvas, series, labels, refLine || 0);
+
+    if (!sectorCanViewNumbers && chart) {
+      chart.options.scales.y.ticks.display = false;
+      chart.options.plugins.tooltip.enabled = false;
+      chart.update('none');
+    }
+    return chart;
+  }
+
+  function renderSectorBucketed(mode) {
+    if (!sectorBucketedData) return;
+    if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
+    if (sectorLoading) sectorLoading.style.display = 'none';
+
+    if (!sectorBucketedData.hasTimings) {
+      sectorNoTimings.style.display = '';
+      sectorChartWrap.style.display = 'none';
+      if (sectorFineBtn) sectorFineBtn.style.display = 'none';
+      return;
+    }
+    sectorNoTimings.style.display = 'none';
+    sectorChartWrap.style.display = '';
+    if (sectorFineBtn) sectorFineBtn.style.display = '';
+    sectorChart = buildSectorBucketedChart(mode || 'bar');
+  }
+
+  function loadSectorBucketed(sectorId) {
+    var eventId = new URLSearchParams(window.location.search).get('event');
+    if (!eventId) return;
+    if (sectorLoading) sectorLoading.style.display = '';
+    sectorNoTimings.style.display = 'none';
+    sectorChartWrap.style.display = 'none';
+
+    fetch(window.CTP_BASE_PATH + '/charts/sector/' + encodeURIComponent(sectorId) + '/bucketed?event=' + encodeURIComponent(eventId))
+      .then(function (r) { return r.json(); })
+      .then(function (resp) {
+        if (!activeSectorCard || activeSectorCard.dataset.name !== sectorId) return;
+        sectorBucketedData = resp;
+        renderSectorBucketed(sectorChartMode);
+      })
+      .catch(function () {
+        if (sectorLoading) sectorLoading.style.display = 'none';
+      });
+  }
 
   var SECTOR_STATE_KEY = 'ctpChartsSectorState';
   function saveSectorState() {
@@ -474,6 +534,7 @@
           card.classList.remove('active');
           sectorDetail.style.display = 'none';
           activeSectorCard = null;
+          sectorBucketedData = null;
           if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
           saveSectorState();
           return;
@@ -483,84 +544,60 @@
         activeSectorCard = card;
 
         var name = card.dataset.name;
-        var hasTimings = card.dataset.hasTimings !== 'false';
 
         sectorDetailTitle.textContent = name;
         sectorDetail.style.display = '';
         sectorFineMode = false;
-        sectorFineData = null;
         sectorChartMode = 'bar';
+        sectorBucketedData = null;
         if (sectorToggleBar) { sectorToggleBar.classList.add('active'); sectorToggleBar.style.display = ''; }
         if (sectorToggleLine) { sectorToggleLine.classList.remove('active'); sectorToggleLine.style.display = ''; }
         if (sectorFineBtn) {
-          sectorFineBtn.style.display = hasTimings ? '' : 'none';
+          sectorFineBtn.style.display = 'none';
           sectorFineBtn.disabled = false;
           sectorFineBtn.textContent = 'Load 2-min';
+          sectorFineBtn.classList.remove('active');
         }
-        if (sectorFineLoading) sectorFineLoading.style.display = 'none';
 
         if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
-
-        if (!hasTimings) {
-          sectorNoTimings.style.display = '';
-          sectorChartWrap.style.display = 'none';
-        } else {
-          sectorNoTimings.style.display = 'none';
-          sectorChartWrap.style.display = '';
-          var series = JSON.parse(card.dataset.series || '[]');
-          var labels = JSON.parse(card.dataset.labels || '[]');
-          var maxAcph = parseInt(card.dataset.max || '0', 10);
-          sectorChart = buildRowChart(sectorCanvas, series, labels, maxAcph);
-        }
+        loadSectorBucketed(name);
         saveSectorState();
-
-        if (sectorToggleBar) {
-          sectorToggleBar.addEventListener('click', function () {
-            if (sectorChartMode === 'bar' && !sectorFineMode) return;
-            var wasFine = sectorFineMode;
-            sectorFineMode = false;
-            sectorChartMode = 'bar';
-            sectorToggleBar.classList.add('active');
-            sectorToggleLine.classList.remove('active');
-            if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
-            var series = JSON.parse(activeSectorCard.dataset.series || '[]');
-            var labels = JSON.parse(activeSectorCard.dataset.labels || '[]');
-            var maxAcph = parseInt(activeSectorCard.dataset.max || '0', 10);
-            sectorChart = buildRowChart(sectorCanvas, series, labels, maxAcph);
-            saveSectorState();
-            if (wasFine && sectorFineBtn) {
-              sectorFineBtn.style.display = '';
-              sectorFineBtn.disabled = false;
-              sectorFineBtn.textContent = 'Load 2-min';
-              sectorFineBtn.classList.remove('active');
-            }
-          });
-        }
-        if (sectorToggleLine) {
-          sectorToggleLine.addEventListener('click', function () {
-            if (sectorChartMode === 'line' && !sectorFineMode) return;
-            var wasFine = sectorFineMode;
-            sectorFineMode = false;
-            sectorFineData = null;
-            sectorChartMode = 'line';
-            sectorToggleLine.classList.add('active');
-            sectorToggleBar.classList.remove('active');
-            if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
-            var series = JSON.parse(activeSectorCard.dataset.series || '[]');
-            var labels = JSON.parse(activeSectorCard.dataset.labels || '[]');
-            sectorChart = buildRowLineChart(sectorCanvas, series, labels);
-            saveSectorState();
-            if (wasFine && sectorFineBtn) {
-              sectorFineBtn.style.display = '';
-              sectorFineBtn.disabled = false;
-              sectorFineBtn.textContent = 'Load 2-min';
-              sectorFineBtn.classList.remove('active');
-            }
-          });
-        }
-
-
       });
+    });
+  }
+
+  if (sectorToggleBar) {
+    sectorToggleBar.addEventListener('click', function () {
+      if (!activeSectorCard) return;
+      if (sectorChartMode === 'bar' && !sectorFineMode) return;
+      sectorFineMode = false;
+      sectorChartMode = 'bar';
+      sectorToggleBar.classList.add('active');
+      if (sectorToggleLine) sectorToggleLine.classList.remove('active');
+      if (sectorFineBtn) {
+        sectorFineBtn.disabled = false;
+        sectorFineBtn.textContent = 'Load 2-min';
+        sectorFineBtn.classList.remove('active');
+      }
+      renderSectorBucketed('bar');
+      saveSectorState();
+    });
+  }
+  if (sectorToggleLine) {
+    sectorToggleLine.addEventListener('click', function () {
+      if (!activeSectorCard) return;
+      if (sectorChartMode === 'line' && !sectorFineMode) return;
+      sectorFineMode = false;
+      sectorChartMode = 'line';
+      sectorToggleLine.classList.add('active');
+      if (sectorToggleBar) sectorToggleBar.classList.remove('active');
+      if (sectorFineBtn) {
+        sectorFineBtn.disabled = false;
+        sectorFineBtn.textContent = 'Load 2-min';
+        sectorFineBtn.classList.remove('active');
+      }
+      renderSectorBucketed('line');
+      saveSectorState();
     });
   }
 
@@ -573,7 +610,8 @@
       var visible = 0;
       sectorCards.forEach(function (c) {
         var name = (c.dataset.name || '').toUpperCase();
-        var match = !q || name.indexOf(q) !== -1;
+        var ds = (c.dataset.datasource || '').toUpperCase();
+        var match = !q || name.indexOf(q) !== -1 || ds.indexOf(q) !== -1;
         c.style.display = match ? '' : 'none';
         if (match) visible++;
       });
@@ -619,15 +657,18 @@
 
       sectorFineBtn.disabled = true;
       sectorFineBtn.textContent = 'Loading...';
-      if (sectorFineLoading) sectorFineLoading.style.display = '';
 
       fetch(window.CTP_BASE_PATH + '/charts/sector/' + encodeURIComponent(sectorId) + '/fine?event=' + encodeURIComponent(eventId))
         .then(function (r) { return r.json(); })
         .then(function (resp) {
-          sectorFineData = resp;
           sectorFineMode = true;
           if (sectorChart) { sectorChart.destroy(); sectorChart = null; }
           sectorChart = buildRowLineChart(sectorCanvas, resp.data, resp.labels);
+          if (!sectorCanViewNumbers && sectorChart) {
+            sectorChart.options.scales.y.ticks.display = false;
+            sectorChart.options.plugins.tooltip.enabled = false;
+            sectorChart.update('none');
+          }
           if (sectorFineBtn) {
             sectorFineBtn.disabled = true;
             sectorFineBtn.textContent = 'Fine';
@@ -640,7 +681,6 @@
           sectorFineBtn.disabled = false;
           sectorFineBtn.textContent = 'Load 2-min';
           sectorFineBtn.classList.remove('active');
-          if (sectorFineLoading) sectorFineLoading.style.display = 'none';
         });
     });
   }

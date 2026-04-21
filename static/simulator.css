@@ -417,10 +417,12 @@ body {
 .grid-card--orange { background: var(--color-orange-bg); color: var(--color-orange); }
 .grid-card--red    { background: var(--color-red-bg);    color: var(--color-red); }
 .grid-card--grey   { background: #f1f5f9; color: #64748b; }
+.grid-card--neutral { background: #e2e8f0; color: #0f172a; }
 .dark .grid-card--green  { background: rgba(22,163,74,0.12); }
 .dark .grid-card--orange { background: rgba(194,97,42,0.12); }
 .dark .grid-card--red    { background: rgba(220,38,38,0.12); }
 .dark .grid-card--grey   { background: rgba(255,255,255,0.05); color: #71717a; }
+.dark .grid-card--neutral { background: rgba(255,255,255,0.08); color: #e2e8f0; }
 
 /* Sector sub-navigation (Max Occ / Total Occ tabs) */
 .sectors-subnav {
@@ -474,6 +476,13 @@ body {
   font-size: 11px;
   opacity: 0.75;
   line-height: 1.4;
+}
+.grid-card__datasource {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 .grid-card__util {
   font-size: 13px;

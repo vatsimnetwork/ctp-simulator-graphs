@@ -25,25 +25,21 @@ type DepartureAirportData struct {
 }
 
 type SectorTimingData struct {
-	Identifier              string
-	MaxAcPerHour            uint16
-	// Peak view: peak instantaneous count per bucket, reference = Little's Law occupancy
-	EstimatedMaxOccupancy   int
-	PeakTimeSeries          []int
-	Peak                    int
-	PeakLabel               string
-	PeakUtilPct             float64
-	PeakCardClass           string
-	// Total view: cumulative unique slots per bucket, reference = λ(W+20)/60
-	EstimatedTotalOccupancy int
-	TotalTimeSeries         []int
-	TotalPeak               int
-	TotalPeakLabel          string
-	TotalUtilPct            float64
-	TotalCardClass          string
-	// Shared
-	HasTimings              bool
-	TimeLabels              []string
+	Identifier     string
+	Datasource     string
+	MaxAcPerHour   uint16
+	HasTimings     bool
+	Peak           int
+	PeakLabel      string
+	PeakRef        int
+	PeakUtilPct    float64
+	PeakCardClass  string
+	TotalPeak      int
+	TotalPeakLabel string
+	TotalRef       int
+	TotalUtilPct   float64
+	TotalCardClass string
+	AvgDwellMin    float64
 }
 
 type DepSeriesData struct {
@@ -113,72 +109,37 @@ func BuildSectors(resp *SectorsResponse) []SectorTimingData {
 		return nil
 	}
 
-	var result []SectorTimingData
+	result := make([]SectorTimingData, 0, len(resp.Sectors))
 	for _, s := range resp.Sectors {
-		peakSeries := make([]int, 0, len(s.Buckets))
-		totalSeries := make([]int, 0, len(s.Buckets))
-		labels := make([]string, 0, len(s.Buckets))
-
-		peak, peakIdx := 0, 0
-		totalPeak, totalPeakIdx := 0, 0
-		for i, b := range s.Buckets {
-			peakSeries = append(peakSeries, b.PeakCount)
-			totalSeries = append(totalSeries, b.UniqueCount)
-			labels = append(labels, b.Label)
-			if b.PeakCount > peak {
-				peak = b.PeakCount
-				peakIdx = i
-			}
-			if b.UniqueCount > totalPeak {
-				totalPeak = b.UniqueCount
-				totalPeakIdx = i
-			}
+		peakUtil := 0.0
+		if s.PeakRef > 0 {
+			peakUtil = math.Round(float64(s.Peak)/float64(s.PeakRef)*1000) / 10
 		}
-
-		peakLabel, totalPeakLabel := "", ""
-		if len(labels) > 0 {
-			if peakIdx < len(labels) {
-				peakLabel = labels[peakIdx]
-			}
-			if totalPeakIdx < len(labels) {
-				totalPeakLabel = labels[totalPeakIdx]
-			}
+		totalUtil := 0.0
+		if s.TotalRef > 0 {
+			totalUtil = math.Round(float64(s.TotalPeak)/float64(s.TotalRef)*1000) / 10
 		}
-
-		// utilPct = peak value / reference line, consistent between both views.
-		peakUtilPct := 0.0
-		if s.EstimatedMaxOccupancy > 0 {
-			peakUtilPct = math.Round(float64(peak)/float64(s.EstimatedMaxOccupancy)*1000) / 10
-		}
-		totalUtilPct := 0.0
-		if s.EstimatedTotalOccupancy > 0 {
-			totalUtilPct = math.Round(float64(totalPeak)/float64(s.EstimatedTotalOccupancy)*1000) / 10
-		}
-
-		peakClass := cardClass(peakUtilPct)
-		totalClass := cardClass(totalUtilPct)
+		peakClass, totalClass := cardClass(peakUtil), cardClass(totalUtil)
 		if !s.HasTimings {
-			peakClass = "grey"
-			totalClass = "grey"
+			peakClass, totalClass = "grey", "grey"
 		}
 
 		result = append(result, SectorTimingData{
-			Identifier:              s.Identifier,
-			MaxAcPerHour:            s.MaxAcPerHour,
-			EstimatedMaxOccupancy:   s.EstimatedMaxOccupancy,
-			PeakTimeSeries:          peakSeries,
-			Peak:                    peak,
-			PeakLabel:               peakLabel,
-			PeakUtilPct:             peakUtilPct,
-			PeakCardClass:           peakClass,
-			EstimatedTotalOccupancy: s.EstimatedTotalOccupancy,
-			TotalTimeSeries:         totalSeries,
-			TotalPeak:               totalPeak,
-			TotalPeakLabel:          totalPeakLabel,
-			TotalUtilPct:            totalUtilPct,
-			TotalCardClass:          totalClass,
-			HasTimings:              s.HasTimings,
-			TimeLabels:              labels,
+			Identifier:     s.Identifier,
+			Datasource:     s.Datasource,
+			MaxAcPerHour:   s.MaxAcPerHour,
+			HasTimings:     s.HasTimings,
+			Peak:           s.Peak,
+			PeakLabel:      s.PeakLabel,
+			PeakRef:        s.PeakRef,
+			PeakUtilPct:    peakUtil,
+			PeakCardClass:  peakClass,
+			TotalPeak:      s.TotalPeak,
+			TotalPeakLabel: s.TotalPeakLabel,
+			TotalRef:       s.TotalRef,
+			TotalUtilPct:   totalUtil,
+			TotalCardClass: totalClass,
+			AvgDwellMin:    s.AvgDwellMin,
 		})
 	}
 

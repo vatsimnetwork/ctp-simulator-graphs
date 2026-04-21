@@ -39,11 +39,11 @@ func main() {
 	})
 	app.Get(base+"/airports/departure", middleware.RequireAuth, handlers.DepartureAirportsPage)
 	app.Get(base+"/airports/arrival", middleware.RequireAuth, handlers.ArrivalAirportsPage)
-	sectorRole := middleware.RequireRole("administrator", "developer")
-	app.Get(base+"/sectors", middleware.RequireAuth, sectorRole, handlers.SectorsTotalOccPage)
-	app.Get(base+"/sectors/peak", middleware.RequireAuth, sectorRole, handlers.SectorsMaxOccPage)
+	app.Get(base+"/sectors", middleware.RequireAuth, handlers.SectorsTotalOccPage)
+	app.Get(base+"/sectors/peak", middleware.RequireAuth, handlers.SectorsMaxOccPage)
 
-	app.Get(base+"/charts/sector/:identifier/fine", middleware.RequireAuth, sectorRole, handlers.ProxySectorFine)
+	app.Get(base+"/charts/sector/:identifier/fine", middleware.RequireAuth, handlers.ProxySectorFine)
+	app.Get(base+"/charts/sector/:identifier/bucketed", middleware.RequireAuth, handlers.ProxySectorBucketed)
 	app.Get(base+"/charts/arrival/:identifier/fine", middleware.RequireAuth, handlers.ProxyArrivalFine)
 
 	quit := make(chan os.Signal, 1)

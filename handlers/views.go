@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"html/template"
+	"math"
 	"strconv"
 	"time"
 
@@ -70,6 +71,40 @@ func canViewSectors(c fiber.Ctx) bool {
 		}
 	}
 	return false
+}
+
+func normalizeBucketedData(data *services.SectorBucketedResponse) {
+	if data == nil || len(data.Buckets) == 0 {
+		return
+	}
+
+	maxPeak := 0
+	maxUnique := 0
+	for _, b := range data.Buckets {
+		if b.PeakCount > maxPeak {
+			maxPeak = b.PeakCount
+		}
+		if b.UniqueCount > maxUnique {
+			maxUnique = b.UniqueCount
+		}
+	}
+
+	if maxPeak > 0 {
+		normFactorPeak := 1.0 / float64(maxPeak)
+		for i := range data.Buckets {
+			data.Buckets[i].PeakCount = int(math.Round(float64(data.Buckets[i].PeakCount) * normFactorPeak * 100))
+		}
+		data.Peak = int(math.Round(float64(data.Peak) * normFactorPeak * 100))
+		data.PeakRef = 100
+	}
+	if maxUnique > 0 {
+		normFactorUnique := 1.0 / float64(maxUnique)
+		for i := range data.Buckets {
+			data.Buckets[i].UniqueCount = int(math.Round(float64(data.Buckets[i].UniqueCount) * normFactorUnique * 100))
+		}
+		data.TotalPeak = int(math.Round(float64(data.TotalPeak) * normFactorUnique * 100))
+		data.TotalRef = 100
+	}
 }
 
 func newBaseData(c fiber.Ctx, activePage string) baseData {
@@ -210,56 +245,37 @@ func DepartureAirportsPage(c fiber.Ctx) error {
 // ── Sectors page ─────────────────────────────────────────────────────────────
 
 type sectorView struct {
-	Identifier     string
-	MaxAcPerHour   uint16
-	RefLine        int // reference line value for the chart (0 = no line)
-	UtilPct        float64
-	CardClass      string
-	HasTimings     bool
-	Peak           int
-	PeakLabel      string
-	TimeSeriesJSON template.JS
-	TimeLabelsJSON template.JS
+	Identifier   string
+	Datasource   string
+	MaxAcPerHour uint16
+	HasTimings   bool
+	Peak         int
+	PeakLabel    string
+	UtilPct      float64
+	CardClass    string
 }
 
-func buildSectorViews(raw []services.SectorTimingData, peak bool) []sectorView {
+func buildSectorViews(raw []services.SectorTimingData, peakMode bool) []sectorView {
 	views := make([]sectorView, 0, len(raw))
 	for _, s := range raw {
-		var series []int
-		var refLine int
-		var utilPct float64
-		var cardClass string
-		var pk int
-		var pkLabel string
-		if peak {
-			series = s.PeakTimeSeries
-			refLine = s.EstimatedMaxOccupancy
-			utilPct = s.PeakUtilPct
-			cardClass = s.PeakCardClass
-			pk = s.Peak
-			pkLabel = s.PeakLabel
-		} else {
-			series = s.TotalTimeSeries
-			refLine = s.EstimatedTotalOccupancy
-			utilPct = s.TotalUtilPct
-			cardClass = s.TotalCardClass
-			pk = s.TotalPeak
-			pkLabel = s.TotalPeakLabel
+		v := sectorView{
+			Identifier:   s.Identifier,
+			Datasource:   s.Datasource,
+			MaxAcPerHour: s.MaxAcPerHour,
+			HasTimings:   s.HasTimings,
 		}
-		tsJSON, _ := json.Marshal(series)
-		tlJSON, _ := json.Marshal(s.TimeLabels)
-		views = append(views, sectorView{
-			Identifier:     s.Identifier,
-			MaxAcPerHour:   s.MaxAcPerHour,
-			RefLine:        refLine,
-			UtilPct:        utilPct,
-			CardClass:      cardClass,
-			HasTimings:     s.HasTimings,
-			Peak:           pk,
-			PeakLabel:      pkLabel,
-			TimeSeriesJSON: template.JS(tsJSON),
-			TimeLabelsJSON: template.JS(tlJSON),
-		})
+		if peakMode {
+			v.Peak = s.Peak
+			v.PeakLabel = s.PeakLabel
+			v.UtilPct = s.PeakUtilPct
+			v.CardClass = s.PeakCardClass
+		} else {
+			v.Peak = s.TotalPeak
+			v.PeakLabel = s.TotalPeakLabel
+			v.UtilPct = s.TotalUtilPct
+			v.CardClass = s.TotalCardClass
+		}
+		views = append(views, v)
 	}
 	return views
 }
@@ -280,8 +296,13 @@ func renderSectorsPage(c fiber.Ctx, peakMode bool) error {
 
 	hasRevision := resp != nil && resp.RevisionNumber > 0
 	var sectors []sectorView
-	if hasRevision {
+	if resp != nil {
 		sectors = buildSectorViews(services.BuildSectors(resp), peakMode)
+	}
+
+	currentRevision := uint(0)
+	if resp != nil {
+		currentRevision = resp.RevisionNumber
 	}
 
 	return c.Render("sectors", fiber.Map{
@@ -293,11 +314,12 @@ func renderSectorsPage(c fiber.Ctx, peakMode bool) error {
 		"Events":           bd.Events,
 		"SelectedEventID":  bd.SelectedEventID,
 		"SelectedRevision": bd.SelectedRevision,
-		"CurrentRevision":  resp.RevisionNumber,
+		"CurrentRevision":  currentRevision,
 		"HasRevision":      hasRevision,
 		"EventTitle":       bd.EventTitle,
 		"CacheBust":        bd.CacheBust,
 		"CanViewSectors":   bd.CanViewSectors,
+		"PeakMode":         peakMode,
 		"Sectors":          sectors,
 		"BodyClass":        "sectors-page",
 	}, "layout")
@@ -382,6 +404,31 @@ func ProxySectorFine(c fiber.Ctx) error {
 	if err != nil {
 		log.Error().Err(err).Msg("failed to fetch sector fine data")
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to fetch data")
+	}
+
+	return c.JSON(data)
+}
+
+func ProxySectorBucketed(c fiber.Ctx) error {
+	eventID := c.Query("event")
+	identifier := c.Params("identifier")
+	if eventID == "" || identifier == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "event and identifier are required")
+	}
+
+	id, err := strconv.ParseUint(eventID, 10, 64)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid event id")
+	}
+
+	data, err := services.FetchSectorBucketed(uint(id), identifier)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to fetch sector bucketed data")
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to fetch data")
+	}
+
+	if !canViewSectors(c) {
+		normalizeBucketedData(data)
 	}
 
 	return c.JSON(data)

@@ -7,7 +7,9 @@
   <a class="sectors-subnav__tab{{if eq .ActivePage "sectors-peak"}} active{{end}}" href="{{.BasePath}}/sectors/peak{{.EventQuery}}">Max Occupancy</a>
 </div>
 
-<div class="sectors-layout">
+<div class="sectors-layout"
+     data-peak-mode="{{if .PeakMode}}1{{else}}0{{end}}"
+     data-can-view-numbers="{{if .CanViewSectors}}1{{else}}0{{end}}">
 
   <div class="detail-panel" id="sector-detail" style="display:none">
     <div class="detail-panel__header">
@@ -20,7 +22,8 @@
     </div>
     <div class="detail-panel__body">
       <div id="sector-no-timings" class="empty-state" style="display:none">NO timings available</div>
-      <div class="detail-chart-wrap" id="sector-chart-wrap">
+      <div id="sector-loading" class="empty-state" style="display:none">Loading…</div>
+      <div class="detail-chart-wrap" id="sector-chart-wrap" style="display:none">
         <canvas id="sector-chart-canvas"></canvas>
       </div>
     </div>
@@ -33,20 +36,23 @@
 
   <div class="card-grid" id="sector-grid">
     {{range $i, $s := .Sectors}}
-    <div class="grid-card grid-card--{{$s.CardClass}} sector-card"
+    <div class="grid-card sector-card{{if $.CanViewSectors}} grid-card--{{$s.CardClass}}{{else if $s.HasTimings}} grid-card--neutral{{else}} grid-card--grey{{end}}"
          data-idx="{{$i}}"
          data-name="{{$s.Identifier}}"
-         data-has-timings="{{$s.HasTimings}}"
-         data-series="{{$s.TimeSeriesJSON}}"
-         data-labels="{{$s.TimeLabelsJSON}}"
-         data-max="{{$s.RefLine}}">
+         data-datasource="{{$s.Datasource}}"
+         data-has-timings="{{$s.HasTimings}}">
       <div class="grid-card__name">{{$s.Identifier}}</div>
-      {{if $s.HasTimings}}
-      <div class="grid-card__sub">Peak: {{$s.Peak}} @ {{$s.PeakLabel}}</div>
-      {{else}}
+      <div class="grid-card__datasource">{{$s.Datasource}}</div>
+      {{if $.CanViewSectors}}
+        {{if $s.HasTimings}}
+        <div class="grid-card__sub">Peak: {{$s.Peak}} @ {{$s.PeakLabel}}</div>
+        <div class="grid-card__util">{{printf "%.1f" $s.UtilPct}}%</div>
+        {{else}}
+        <div class="grid-card__sub">No timing data</div>
+        {{end}}
+      {{else if not $s.HasTimings}}
       <div class="grid-card__sub">No timing data</div>
       {{end}}
-      <div class="grid-card__util">{{printf "%.1f" $s.UtilPct}}%</div>
     </div>
     {{end}}
   </div>

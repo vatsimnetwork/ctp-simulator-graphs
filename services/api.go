@@ -254,14 +254,17 @@ type SectorBucket struct {
 }
 
 type SectorEntry struct {
-	Identifier              string         `json:"identifier"`
-	MaxAcPerHour            uint16         `json:"maxAcPerHour"`
-	HasTimings              bool           `json:"hasTimings"`
-	TotalSlots              int            `json:"totalSlots"`
-	AvgDwellMinutes         float64        `json:"avgDwellMinutes"`
-	EstimatedMaxOccupancy   int            `json:"estimatedMaxOccupancy"`
-	EstimatedTotalOccupancy int            `json:"estimatedTotalOccupancy"`
-	Buckets                 []SectorBucket `json:"buckets"`
+	Identifier     string  `json:"identifier"`
+	Datasource     string  `json:"datasource"`
+	MaxAcPerHour   uint16  `json:"maxAcPerHour"`
+	HasTimings     bool    `json:"hasTimings"`
+	Peak           int     `json:"peak"`
+	PeakLabel      string  `json:"peakLabel"`
+	PeakRef        int     `json:"peakRef"`
+	TotalPeak      int     `json:"totalPeak"`
+	TotalPeakLabel string  `json:"totalPeakLabel"`
+	TotalRef       int     `json:"totalRef"`
+	AvgDwellMin    float64 `json:"avgDwellMinutes"`
 }
 
 type SectorsResponse struct {
@@ -269,6 +272,24 @@ type SectorsResponse struct {
 	EventDate           time.Time     `json:"eventDate"`
 	DepartureTimeWindow string        `json:"departureTimeWindow"`
 	Sectors             []SectorEntry `json:"sectors"`
+}
+
+type SectorBucketedResponse struct {
+	Identifier              string         `json:"identifier"`
+	Datasource              string         `json:"datasource"`
+	MaxAcPerHour            uint16         `json:"maxAcPerHour"`
+	HasTimings              bool           `json:"hasTimings"`
+	TotalSlots              int            `json:"totalSlots"`
+	AvgDwellMinutes         float64        `json:"avgDwellMinutes"`
+	Peak                    int            `json:"peak"`
+	PeakLabel               string         `json:"peakLabel"`
+	PeakRef                 int            `json:"peakRef"`
+	TotalPeak               int            `json:"totalPeak"`
+	TotalPeakLabel          string         `json:"totalPeakLabel"`
+	TotalRef                int            `json:"totalRef"`
+	EstimatedMaxOccupancy    int            `json:"estimatedMaxOccupancy"`
+	EstimatedTotalOccupancy int            `json:"estimatedTotalOccupancy"`
+	Buckets                 []SectorBucket `json:"buckets"`
 }
 
 type ArrDepSeries struct {
@@ -443,6 +464,38 @@ type ArrivalFineResponse struct {
 	Labels    []string       `json:"labels"`
 	Total     []int          `json:"total"`
 	DepSeries []ArrDepSeries `json:"depSeries"`
+}
+
+func FetchSectorBucketed(eventID uint, identifier string) (*SectorBucketedResponse, error) {
+	url := fmt.Sprintf("%s/api/events/%d/charts/sector/%s/bucketed", config.C.CTPAPIURL, eventID, identifier)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", config.C.CTPAPIKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("charts/sector/bucketed API returned %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var data SectorBucketedResponse
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+
+	return &data, nil
 }
 
 func FetchSectorFine(eventID uint, identifier string) (*SectorFineResponse, error) {
